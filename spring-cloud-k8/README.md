@@ -18,6 +18,8 @@ target=/root/.m2: This is the directory inside the container that Maven uses to 
 
 - To get true load balancing in a Docker Compose environment without fighting JVM DNS caching or manual YAML lists: Add the NGINX Load Balancer and Point the Feign Client to the NGINX address instead of the service name directly.
 
+- a separate spring-cloud-config server can be run to read data from k8 configmap and secrets and make the other services read the config properties from the config-server or k8 config map and secrets can be directly made available to the services. Make sure to add "spring-cloud-starter-kubernetes-client-config" dependency and 'spring.config.import: "kubernetes:"' in application.yaml.
+
 #### Using Local Docker Image with Minikube:
 ```
 eval $(minikube docker-env)  # Switch to Minikube's Docker daemon
@@ -32,6 +34,10 @@ This builds the image directly into Minikube’s environment—no need for a reg
 - the k8 service port is 80. the internal traffic are routed thru k8 services so no need to specify the port in the internal requests.
 
 - We can't get true load balancing without a Discovery server (Netflix Eureka or HashiCorp Consul) or a proxy server like NGINX. If we want true load balancing where traffic actually moves between our Docker containers without setting up NGINX or Kubernetes, using a Discovery Server is the best path. It makes our Docker environment behave almost exactly like a local version of a cloud environment.
+
+- Make sure to provide necessary permissions to the pods to pull configmaps and secrets from k8 cluster.
+
+- by default k8 secrets won't be available unless it is made available using, "spring.cloud.kubernetes.secrets.enabled" property. The secrets are available if read from secrets mounts. See, https://docs.spring.io/spring-cloud-kubernetes/reference/property-source-config/secrets-propertysource.html
 
 ## Workflow
 ┌─────────┐
@@ -106,3 +112,4 @@ This builds the image directly into Minikube’s environment—no need for a reg
 # References
 - https://cloud.spring.io/spring-cloud-kubernetes/reference/html/
 - https://docs.spring.io/spring-cloud-kubernetes/reference/discovery-client.html
+- https://docs.spring.io/spring-cloud-kubernetes/reference/getting-started.html

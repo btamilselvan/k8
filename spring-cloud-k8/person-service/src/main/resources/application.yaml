@@ -1,43 +1,63 @@
 spring:
   application.name: person-service
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 5000
+            read-timeout: 5000
+            logger-level: FULL
 server:
   port: 8080
 ---
 #kubernets profile
 spring:
-   config.activate.on-profile: kubernetes
-   cloud:
+  config.activate.on-profile: kubernetes
+  config.import: "kubernetes:" # enable loading config from k8 configmaps and secrets
+  cloud:
     kubernetes:
       discovery:
         namespaces:
           - default
         service-labels:
           discovery-enabled: "true" #this points to the metadata labels of the target services
+      config: # this is optional but set if you want to specify particular configmaps to load
+        name: person-service
+        namespace: default
+        sources:
+          - name: person-service
+      secrets: # this is optional but set if you want to specify particular configmaps to load
+        enabled: true #by default secrets loading is disabled when loaded via spring.config.import
+        name: person-service
+        namespace: default
+        sources:
+          - name: person-service
 ---
 #docker-compose profile
 spring:
-   config.activate.on-profile: docker
-   # Use simple discovery client with static URIs for local testing. this does not give true load balancing. 
+  config.activate.on-profile: docker
+  # Use simple discovery client with static URIs for local testing. this does not give true load balancing. 
    #use NGINX to get true load balancing in docker environment or use a Discovery server like eureka or consul
-   cloud:
-     discovery:
-       client:
-         simple:
-           instances:
-             address-service:
-               - uri: http://address-service:8080
+  cloud:
+    discovery:
+      client:
+        simple:
+          instances:
+            address-service:
+              - uri: http://address-service:8080
 ---
 #local profile
 spring:
    config.activate.on-profile: local
    # Use simple discovery client with static URIs for local testing
    cloud:
-     discovery:
-       client:
-         simple:
-           instances:
-             address-service:
-               - uri: http://localhost:8082
-               - uri: http://localhost:8083
+      discovery:
+        client:
+          simple:
+            instances:
+              address-service:
+                - uri: http://localhost:8082
+                # - uri: http://localhost:8083
 server:
   port: 8081

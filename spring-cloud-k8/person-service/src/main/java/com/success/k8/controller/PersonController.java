@@ -4,6 +4,8 @@ import com.success.k8.client.AddressServiceClient;
 import java.time.Instant;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +19,15 @@ public class PersonController {
   private final DiscoveryClient discoveryClient;
   private final AddressServiceClient addressServiceClient;
   private final RestClient restClient = RestClient.create();
+
+  @Value("${hello.message:default hello}")
+  private String helloMessage;
+
+  @Value("${trocks.apiKey:default-api-key}")
+  private String apiKey;
+
+  @Value("${db.username:default-username}")
+  private String dbUsername;
 
   // works within the same namespace
   private static final String K8_INTERNAL_SHORT_URL = "http://address-service:8080";
@@ -34,6 +45,16 @@ public class PersonController {
   @GetMapping("/health")
   public String healthCheck() {
     return "Person Service is up and running! " + Instant.now() + " Id : " + this.toString();
+  }
+
+  @GetMapping("/config")
+  public String fetchConfig(){
+    return "Person Service says: " + this.helloMessage;
+  }
+
+  @GetMapping("/secret")
+  public String fetchSecret(){
+    return "Person Service says: " + this.apiKey + " / " + this.dbUsername;
   }
 
   @GetMapping("/services")
@@ -115,6 +136,7 @@ public class PersonController {
 
   @GetMapping("/address-service/feign")
   public String addressHealthByFeign() {
+    log.info("Calling address-service using Feign client");
     return "routed using feign: "+addressServiceClient.health();
   }
 }

@@ -12,7 +12,7 @@ metadata:
   namespace: default
 rules:
   - apiGroups: [""]
-    resources: ["pods", "services", "endpoints", "namespaces"]
+    resources: ["pods", "services", "endpoints", "namespaces", "configmaps", "secrets"]
     verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
