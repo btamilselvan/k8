@@ -13,7 +13,7 @@ public class GatewayController {
   @GetMapping("/health")
   public String healthCheck() {
     log.info("health check endpoint called");
-    return "Gateway Service is up and running! Current Time is " + Instant.now();
+    return "Gateway Service is up and running! Current Time is " + Instant.now() + " Id : " + this.toString();
   }
 
   @GetMapping("/ucase")

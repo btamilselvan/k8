@@ -1,6 +1,8 @@
 ### vs code rest client extension test file
 @baseUrl = http://localhost:8080
 
+@baseUrlP = http://localhost:8081
+
 ### Test the concat1 endpoint
 @name = Concat1 Endpoint Test
 POST {{baseUrl}}/concat1
@@ -15,3 +17,7 @@ GET {{baseUrl}}/web
 ### Test the custom route endpoint - Person Service health check
 @name = Custom Route Person Service Health Check
 GET {{baseUrl}}/person/health
+
+## person service health check - direct access
+@name = Person Service Health Check Direct Access
+GET {{baseUrlP}}/health

@@ -7,9 +7,9 @@ services:
         MODULE_NAME: gateway-service
     image: gateway-service:latest
     ports:
-      - "8082:8080"
+      - "8080:8080"  #this does not matter in k8 environment as the requets are routed via k8 service which listens on port 80
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_PROFILES_ACTIVE=dev,docker
   person-service:
     build:
       context: .
@@ -18,20 +18,23 @@ services:
         MODULE_NAME: person-service
     image: person-service:latest
     ports:
-      - "8081:8080"
+      - "8081:8080"  #this does not matter in k8 environment as the requets are routed via k8 service which listens on port 80
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_PROFILES_ACTIVE=dev,docker
     depends_on:
       - gateway-service
-  # address-service:
-  #   build:
-  #     context: .
-  #     dockerfile: address-service/Dockerfile
-  #     args:
-  #       MODULE_NAME: address-service
-  #   ports:
-  #     - "8083:8080"
-  #   environment:
-  #     - SPRING_PROFILES_ACTIVE=dev
-  #   depends_on:
-  #     - gateway-service
+  address-service:
+    build:
+      context: .
+      dockerfile: address-service/Dockerfile
+      args:
+        MODULE_NAME: address-service
+    image: address-service:latest
+    deploy:
+      replicas: 2
+    # ports:
+    #   - "8082:8080" #this does not matter in k8 environment as the requets are routed via k8 service which listens on port 80
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev,docker
+    depends_on:
+      - gateway-service

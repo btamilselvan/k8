@@ -1,6 +1,6 @@
 package com.success.k8.config;
 
-
+/* 
 import org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions;
 import org.springframework.cloud.gateway.server.mvc.handler.GatewayRouterFunctions;
 import org.springframework.cloud.gateway.server.mvc.handler.HandlerFunctions;
@@ -10,13 +10,17 @@ import org.springframework.http.HttpMethod;
 import org.springframework.web.servlet.function.RequestPredicates;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerResponse;
-
+*/
 /**
  * This is a demo configuration class to setup various routes in the Gateway Service via code. In
  * real world scenarios, these routes can be configured via application.yml or properties file.
+ * 
+ * This is for Spring MVC based Gateway Service.
  */
-@Configuration
+// @Configuration
 public class GatewayServiceConfig {
+
+    /*
 
   // Expose the "concat" Function as an HTTP GET endpoint at /concat1
   @Bean
@@ -33,16 +37,6 @@ public class GatewayServiceConfig {
         .GET("/web", HandlerFunctions.forward("/uppercase"))
         .build();
   }
-
-  // Forward all requests with path /person/** to person-service
-  /*@Bean
-  public RouterFunction<ServerResponse> route6() {
-    return GatewayRouterFunctions.route("person_service_router_1")
-        .GET("/person/**", HandlerFunctions.http())
-        .before(BeforeFilterFunctions.rewritePath("/person/(?<segment>.*)", "/${segment}"))
-        .before(BeforeFilterFunctions.uri("http://localhost:8081"))
-        .build();
-  }*/
 
   // forward /xyz to google.com
   @Bean
@@ -88,4 +82,5 @@ public class GatewayServiceConfig {
             })
         .build();
   }
+        */
 }

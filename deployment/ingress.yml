@@ -9,7 +9,7 @@ spec:
   ingressClassName: nginx #for NGINX Ingress Controller (minikube)
   #ingressClassName: alb #for AWS ALB Ingress Controller
   rules:
-    # - host: api.localhost
+    # - host: api.localhost #uncomment and set this only if using host-based routing
     - http:
         paths:
           - path: /

@@ -1,0 +1,43 @@
+spring:
+  application.name: person-service
+server:
+  port: 8080
+---
+#kubernets profile
+spring:
+   config.activate.on-profile: kubernetes
+   cloud:
+    kubernetes:
+      discovery:
+        namespaces:
+          - default
+        service-labels:
+          discovery-enabled: "true" #this points to the metadata labels of the target services
+---
+#docker-compose profile
+spring:
+   config.activate.on-profile: docker
+   # Use simple discovery client with static URIs for local testing. this does not give true load balancing. 
+   #use NGINX to get true load balancing in docker environment or use a Discovery server like eureka or consul
+   cloud:
+     discovery:
+       client:
+         simple:
+           instances:
+             address-service:
+               - uri: http://address-service:8080
+---
+#local profile
+spring:
+   config.activate.on-profile: local
+   # Use simple discovery client with static URIs for local testing
+   cloud:
+     discovery:
+       client:
+         simple:
+           instances:
+             address-service:
+               - uri: http://localhost:8082
+               - uri: http://localhost:8083
+server:
+  port: 8081

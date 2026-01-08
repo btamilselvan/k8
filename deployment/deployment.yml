@@ -1,0 +1,129 @@
+# Deployment configuration for gateway-service, person-service, and address-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway-service #just the name of the service
+  #namespace: trocks-api
+  labels:
+    app: gateway-service
+spec: #deployment spec
+  replicas: 2 # number of pod replicas
+  selector:
+    matchLabels:
+      app: gateway-service #this should match the label in the pod template below
+  template: #pod template
+    metadata:
+      labels:
+        app: gateway-service #this should match the label in the selector above
+    spec: #pod spec
+      serviceAccountName: gateway-trocks-account # ServiceAccount for RBAC permissions (must match the name in access-control.yml)
+      containers:
+        - name: gateway-service
+          image: gateway-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080 # Exposed port inside the container
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "dev,kubernetes"
+            # - name: AWS_REGION
+            #   valueFrom:
+            #     configMapKeyRef:
+            #       name: yumitos-config
+            #       key: AWS_REGION
+            # - name: AWS_ACCESS_KEY_ID
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: yumitos-aws-secrets
+            #       key: AWS_ACCESS_KEY_ID
+            # - name: AWS_SECRET_ACCESS_KEY
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: yumitos-aws-secrets
+            #       key: AWS_SECRET_ACCESS_KEY
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: person-service #just the name of the service
+  #namespace: trocks-api
+  labels:
+    app: person-service
+spec: #deployment spec
+  replicas: 2 # number of pod replicas
+  selector:
+    matchLabels:
+      app: person-service #this should match the label in the pod template below
+  template: #pod template
+    metadata:
+      labels:
+        app: person-service #this should match the label in the selector above
+    spec: #pod spec
+      serviceAccountName: gateway-trocks-account # ServiceAccount for RBAC permissions (must match the name in access-control.yml)
+      containers:
+        - name: person-service
+          image: person-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080 # Exposed port inside the container
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "dev,kubernetes"
+            # - name: AWS_REGION
+            #   valueFrom:
+            #     configMapKeyRef:
+            #       name: yumitos-config
+            #       key: AWS_REGION
+            # - name: AWS_ACCESS_KEY_ID
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: yumitos-aws-secrets
+            #       key: AWS_ACCESS_KEY_ID
+            # - name: AWS_SECRET_ACCESS_KEY
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: yumitos-aws-secrets
+            #       key: AWS_SECRET_ACCESS_KEY
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: address-service #just the name of the service
+  #namespace: trocks-api
+  labels:
+    app: address-service
+spec: #deployment spec
+  replicas: 2 # number of pod replicas
+  selector:
+    matchLabels:
+      app: address-service #this should match the label in the pod template below
+  template: #pod template
+    metadata:
+      labels:
+        app: address-service #this should match the label in the selector above
+    spec: #pod spec
+      containers:
+        - name: address-service
+          image: address-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080 # Exposed port inside the container
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "dev,kubernetes"
+            # - name: AWS_REGION
+            #   valueFrom:
+            #     configMapKeyRef:
+            #       name: yumitos-config
+            #       key: AWS_REGION
+            # - name: AWS_ACCESS_KEY_ID
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: yumitos-aws-secrets
+            #       key: AWS_ACCESS_KEY_ID
+            # - name: AWS_SECRET_ACCESS_KEY
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: yumitos-aws-secrets
+            #       key: AWS_SECRET_ACCESS_KEY
