@@ -346,6 +346,79 @@ curl http://localhost:8080/config/person-service/kubernetes
 
 ## Kubernetes Integration
 
+### DNS Resolution in Kubernetes
+
+Kubernetes provides automatic DNS resolution for services within the cluster:
+
+#### DNS Naming Convention
+```
+<service-name>.<namespace>.svc.cluster.local
+```
+
+#### Service DNS Examples
+| Service | Short Name | Full DNS Name |
+|---------|------------|---------------|
+| Gateway Service | `gateway-service` | `gateway-service.default.svc.cluster.local` |
+| Person Service | `person-service` | `person-service.default.svc.cluster.local` |
+| Address Service | `address-service` | `address-service.default.svc.cluster.local` |
+| Config Server | `cloud-config-server` | `cloud-config-server.default.svc.cluster.local` |
+
+#### DNS Usage in Configuration Files
+
+**application.yaml (Spring Cloud Gateway):**
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: person-service
+          uri: lb://person-service          # Uses service discovery
+          predicates:
+            - Path=/person/**
+        - id: address-service
+          uri: lb://address-service         # Uses service discovery
+          predicates:
+            - Path=/address/**
+```
+
+**application.yaml (Person Service - Feign Client):**
+```yaml
+address-service:
+  url: http://address-service:80           # Direct DNS resolution
+
+# OR using Feign with service discovery
+@FeignClient(name = "address-service")     # Uses lb://address-service
+```
+
+**deployment.yaml (Environment Variables):**
+```yaml
+env:
+  - name: CONFIG_SERVER_URL
+    value: "http://cloud-config-server:80"  # DNS name reference
+  - name: SPRING_PROFILES_ACTIVE
+    value: "dev,kubernetes"
+```
+
+**service.yaml (Service Definition):**
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway-service                    # Creates DNS entry
+spec:
+  selector:
+    app: gateway-service
+  ports:
+    - port: 80                             # Service port
+      targetPort: 8080                     # Container port
+```
+
+#### DNS Resolution Hierarchy
+1. **Same Namespace**: `service-name` (short name)
+2. **Cross Namespace**: `service-name.namespace`
+3. **Full FQDN**: `service-name.namespace.svc.cluster.local`
+4. **External**: External DNS resolution
+
 ### Service Discovery
 ```yaml
 # Automatic service discovery with labels

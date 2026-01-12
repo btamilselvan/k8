@@ -43,6 +43,11 @@ mvn clean package -pl gateway-service -am -DskipTests
 mvn clean package -DskipTests
 ```
 
+**Maven Build Flags:**
+- `-pl gateway-service` - Build only the specified module
+- `-am` - Also build dependencies of the specified module
+- `-DskipTests` - Skip test execution during build
+
 ### Running Locally
 ```bash
 # Start services in order
@@ -115,6 +120,42 @@ curl http://localhost:8080/config/person-service/kubernetes
 - **Maven Cache** - Uses Docker build cache for Maven dependencies
 - **Multi-stage Builds** - Optimized Dockerfile with dependency caching
 - **Health Checks** - Docker Compose includes health check configurations
+- **Multi-Module Build Context** - Single Dockerfile builds any service using build args
+
+#### Docker Build Context Strategy
+The project uses a shared Dockerfile with build context set to the root directory:
+
+```yaml
+# docker-compose.yml
+gateway-service:
+  build:
+    context: .              # Root directory as build context
+    dockerfile: gateway-service/Dockerfile
+    args:
+      MODULE_NAME: gateway-service
+```
+
+```dockerfile
+# Dockerfile (shared across all services)
+FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
+WORKDIR /app
+
+# Copy entire workspace from root context
+COPY . .
+
+# Build specific module using ARG
+ARG MODULE_NAME
+RUN mvn clean package -pl ${MODULE_NAME} -am -DskipTests
+
+# Copy built JAR from specific module
+COPY --from=build /app/${MODULE_NAME}/target/*.jar app.jar
+```
+
+This approach:
+- Uses root directory as build context to access all modules
+- Passes `MODULE_NAME` as build argument to specify which service to build
+- Leverages Maven's `-pl` (project list) and `-am` (also make dependencies) flags
+- Enables Docker layer caching for Maven dependencies across all services
 
 ## Environment-Specific Configurations
 
