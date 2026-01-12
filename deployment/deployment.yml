@@ -30,17 +30,17 @@ spec: #deployment spec
             # - name: AWS_REGION
             #   valueFrom:
             #     configMapKeyRef:
-            #       name: yumitos-config
+            #       name: trocks-config
             #       key: AWS_REGION
             # - name: AWS_ACCESS_KEY_ID
             #   valueFrom:
             #     secretKeyRef:
-            #       name: yumitos-aws-secrets
+            #       name: trocks-aws-secrets
             #       key: AWS_ACCESS_KEY_ID
             # - name: AWS_SECRET_ACCESS_KEY
             #   valueFrom:
             #     secretKeyRef:
-            #       name: yumitos-aws-secrets
+            #       name: trocks-aws-secrets
             #       key: AWS_SECRET_ACCESS_KEY
 ---
 apiVersion: apps/v1
@@ -73,17 +73,17 @@ spec: #deployment spec
             # - name: AWS_REGION
             #   valueFrom:
             #     configMapKeyRef:
-            #       name: yumitos-config
+            #       name: trocks-config
             #       key: AWS_REGION
             # - name: AWS_ACCESS_KEY_ID
             #   valueFrom:
             #     secretKeyRef:
-            #       name: yumitos-aws-secrets
+            #       name: trocks-aws-secrets
             #       key: AWS_ACCESS_KEY_ID
             # - name: AWS_SECRET_ACCESS_KEY
             #   valueFrom:
             #     secretKeyRef:
-            #       name: yumitos-aws-secrets
+            #       name: trocks-aws-secrets
             #       key: AWS_SECRET_ACCESS_KEY
 ---
 apiVersion: apps/v1
@@ -115,15 +115,60 @@ spec: #deployment spec
             # - name: AWS_REGION
             #   valueFrom:
             #     configMapKeyRef:
-            #       name: yumitos-config
+            #       name: trocks-config
             #       key: AWS_REGION
             # - name: AWS_ACCESS_KEY_ID
             #   valueFrom:
             #     secretKeyRef:
-            #       name: yumitos-aws-secrets
+            #       name: trocks-aws-secrets
             #       key: AWS_ACCESS_KEY_ID
             # - name: AWS_SECRET_ACCESS_KEY
             #   valueFrom:
             #     secretKeyRef:
-            #       name: yumitos-aws-secrets
+            #       name: trocks-aws-secrets
+            #       key: AWS_SECRET_ACCESS_KEY
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloud-config-server #just the name of the service
+  #namespace: trocks-api
+  labels:
+    app: cloud-config-server
+spec: #deployment spec
+  replicas: 1 # number of pod replicas
+  selector:
+    matchLabels:
+      app: cloud-config-server #this should match the label in the pod template below
+  template: #pod template
+    metadata:
+      labels:
+        app: cloud-config-server #this should match the label in the selector above
+    spec: #pod spec
+      serviceAccountName: gateway-trocks-account # ServiceAccount for RBAC permissions (must match the name in access-control.yml)
+      containers:
+        - name: cloud-config-server
+          image: cloud-config-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080 # Exposed port inside the container
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "dev,kubernetes_native"
+              # value: "dev,kubernetes_git"
+            # - name: AWS_REGION
+            #   valueFrom:
+            #     configMapKeyRef:
+            #       name: trocks-config
+            #       key: AWS_REGION
+            # - name: AWS_ACCESS_KEY_ID
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: trocks-aws-secrets
+            #       key: AWS_ACCESS_KEY_ID
+            # - name: AWS_SECRET_ACCESS_KEY
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: trocks-aws-secrets
             #       key: AWS_SECRET_ACCESS_KEY

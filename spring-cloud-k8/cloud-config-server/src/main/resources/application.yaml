@@ -1,0 +1,75 @@
+spring:
+  #profile.active: native #set native profile for local filesystem based config
+  #use http://localhost:8888/config/default to test local filesystem based config.
+  application.name: cloud-config-server
+
+server:
+  port: 8888
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*' #do not expose all endpoints in production
+---
+#kubernetes profile - to load properties from k8 configmap and secrets
+spring:
+  #config:.activate.on-profile: kubernetes
+  config:
+    activate.on-profile: kubernetes_native
+    # activate.on-cloud-platform: kubernetes #automatic detection of kubernetes environment
+    import: "optional:kubernetes:" # enable loading config from k8 configmaps and secrets
+    kubernetes:
+      configserver:
+        enabled: true
+        config-map-namespaces:
+          - default
+        secret-namespaces:
+          - default
+      config:
+        enabled: true
+        #name: person-service
+        namespace: default
+        # sources:
+        #   - name: cloud-config-server
+      secrets:
+        enabled: true
+        #name: cloud-config-server-secrets
+        namespace: default
+        # sources:
+        #   - name: cloud-config-server
+---
+#kubernetes profile - to load properties from git (no k8 support)
+spring:
+  #config:.activate.on-profile: kubernetes
+  config:
+    activate.on-profile: kubernetes_git
+    # activate.on-cloud-platform: kubernetes #automatic detection of kubernetes environment
+    #import: "optional:kubernetes:" # enable loading config from k8 configmaps and secrets
+  cloud:
+    config:
+      server:
+        git: #use git as config server
+          uri: https://github.com/btamilselvan/spring-cloud-config-repo.git
+          skipSslValidation: true
+          default-label: dev
+---
+#native profile
+spring:
+  config.activate.on-profile: native,local
+  cloud:
+    config:
+      server:
+        native.search-locations: file:/Users/tamil/tamil/git_repository/tamil/k8/spring-cloud-k8/cloud-config-server/src/main/resources/config
+        # git:
+          # uri: https://github.com/btamilselvan/config-repo.git
+---
+#dev profile
+spring:
+  config.activate.on-profile: dev,docker
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/btamilselvan/spring-cloud-config-repo.git
+          skipSslValidation: true
+          default-label: dev

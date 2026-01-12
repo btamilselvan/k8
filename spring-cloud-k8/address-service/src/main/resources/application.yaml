@@ -1,17 +1,42 @@
-spring.application.name: address-service
+spring:
+  application.name: address-service
+  cloud:
+    config:
+      fail-fast: true
+      charset: UTF-8
+      retry:
+        max-attempts: 5
+        max-interval: 3000
+        initial-interval: 1000
+        multiplier: 1.5
 server:
   port: 8080
 ---
 #kubernets profile
 spring:
-   config.activate.on-profile: kubernetes
+  config:
+    activate.on-profile: kubernetes
+    import: optional:configserver:http://cloud-config-server
+  cloud:
+    config:
+      label: kubernetes
 ---
 #docker-compose profile
 spring:
-   config.activate.on-profile: docker
+  config:
+    activate.on-profile: docker
+    import: optional:configserver:http://cloud-config-server:8888
+  cloud:
+    config:
+      label: dev
 ---
 #local profile
 spring:
-   config.activate.on-profile: local
+  config:
+    activate.on-profile: local
+    import: optional:configserver:http://localhost:8888
+  cloud:
+    config:
+      label: dev,local
 server:
   port: 8082

@@ -5,12 +5,12 @@ WORKDIR /app
 # Copy the entire workspace from the context (the root)
 COPY . .
 
-RUN --mount=type=cache,target=/Users/tamil/.m2 \
+RUN --mount=type=cache,target=/root/.m2 \
     mvn dependency:go-offline -B
 
 # Build only the specific module passed via build-arg
 ARG MODULE_NAME gateway-service
-RUN --mount=type=cache,target=/Users/tamil/.m2 \
+RUN --mount=type=cache,target=/root/.m2 \
     mvn clean package -pl ${MODULE_NAME} -am -DskipTests
 
 # Stage 2: Runtime

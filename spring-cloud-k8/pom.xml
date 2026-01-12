@@ -12,6 +12,7 @@
         <module>gateway-service</module>
         <module>person-service</module>
         <module>address-service</module>
+        <module>cloud-config-server</module>
     </modules>
 
     <properties>

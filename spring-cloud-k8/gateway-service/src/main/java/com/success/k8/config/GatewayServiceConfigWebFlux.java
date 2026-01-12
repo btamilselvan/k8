@@ -32,6 +32,12 @@ public class GatewayServiceConfigWebFlux {
                 r.path("/address/**")
                     .filters(f -> f.rewritePath("/address/(?<segment>.*)", "/${segment}"))
                     .uri(gatewayRoutes.getAddressServiceUri()))
+        .route(
+            "config-server",
+            r ->
+                r.path("/config/**")
+                    .filters(f -> f.rewritePath("/config/(?<segment>.*)", "/${segment}"))
+                    .uri(gatewayRoutes.getConfigServerUri()))
         .build();
   }
 }

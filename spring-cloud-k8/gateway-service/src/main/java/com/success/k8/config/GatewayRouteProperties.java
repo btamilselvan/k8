@@ -13,4 +13,5 @@ public class GatewayRouteProperties {
 
   private String personServiceUri;
   private String addressServiceUri;
+  private String configServerUri;
 }

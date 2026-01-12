@@ -3,3 +3,4 @@ spring-cloud-k8/target
 spring-cloud-k8/address-service/target/
 spring-cloud-k8/gateway-service/target/
 spring-cloud-k8/person-service/target/
+spring-cloud-k8/cloud-config-server/target

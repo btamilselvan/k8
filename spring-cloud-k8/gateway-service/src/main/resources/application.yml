@@ -78,6 +78,7 @@ spring:
 gateway.routes:
   person-service-uri: lb://person-service
   address-service-uri: lb://address-service
+  config-server-uri: lb://cloud-config-server #config server service - just for testing purpose
 ---
 #docker-compose profile
 spring:
@@ -92,9 +93,12 @@ spring:
               - uri: http://person-service:8080
             address-service:
               - uri: http://address-service:8080
+            cloud-config-server:
+              - uri: http://cloud-config-server:8888
 gateway.routes:
   person-service-uri: lb://person-service
   address-service-uri: lb://address-service
+  config-server-uri: lb://cloud-config-server #config server service - just for testing purpose
 ---
 #local profile
 spring:
@@ -109,10 +113,13 @@ spring:
               - uri: http://localhost:8081
             address-service:
               - uri: http://localhost:8082
+            cloud-config-server:
+              - uri: http://localhost:8888
             
 server:
   port: 8080
 gateway.routes:
   person-service-uri: lb://person-service
   address-service-uri: lb://address-service
+  config-server-uri: lb://cloud-config-server #config server service - just for testing purpose
   

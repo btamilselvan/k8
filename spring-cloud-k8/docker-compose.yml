@@ -1,4 +1,25 @@
 services:
+  cloud-config-server:
+    build:
+      context: .
+      dockerfile: cloud-config-server/Dockerfile
+      args:
+        MODULE_NAME: cloud-config-server
+    image: cloud-config-server:latest
+    deploy:
+      replicas: 1
+    ports:
+      - "8888:8888" #this does not matter in k8 environment as the requets are routed via k8 service which listens on port 80
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev,docker
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8888/actuator/health | grep UP || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - micro
   gateway-service:
     build:
       context: .
@@ -10,6 +31,14 @@ services:
       - "8080:8080"  #this does not matter in k8 environment as the requets are routed via k8 service which listens on port 80
     environment:
       - SPRING_PROFILES_ACTIVE=dev,docker
+    networks:
+      - micro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8888/actuator/health | grep UP || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
   person-service:
     build:
       context: .
@@ -22,7 +51,10 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=dev,docker
     depends_on:
-      - gateway-service
+      cloud-config-server:
+        condition: service_healthy
+    networks:
+      - micro
   address-service:
     build:
       context: .
@@ -37,4 +69,12 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=dev,docker
     depends_on:
-      - gateway-service
+      cloud-config-server:
+        condition: service_healthy #wait for config-server to fully UP
+    networks:
+      - micro
+
+#networks
+networks:
+  micro:
+    driver: bridge

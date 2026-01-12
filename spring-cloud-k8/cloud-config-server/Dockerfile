@@ -14,7 +14,7 @@ RUN --mount=type=cache,target=/root/.m2 \
     mvn dependency:go-offline -B
 
 # Build only the specific module passed via build-arg
-ARG MODULE_NAME gateway-service
+ARG MODULE_NAME
 RUN --mount=type=cache,target=/root/.m2 \
     mvn clean package -pl ${MODULE_NAME} -am -DskipTests
 
