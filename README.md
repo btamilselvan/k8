@@ -189,7 +189,6 @@ The `k8/deployment/` directory contains comprehensive Kubernetes manifests:
 - **`ingress.yml`** - NGINX Ingress for external access
 - **`access-control.yml`** - RBAC configuration (ServiceAccount, ClusterRole, ClusterRoleBinding)
 - **`secrets_configmap.yml`** - ConfigMaps and Secrets for configuration
-- **`secrets.yml`** - Additional secrets management
 
 ### Deployment Features
 - **Multi-replica deployments** - Gateway (2), Person (2), Address (2), Config (1)
@@ -256,6 +255,7 @@ kubectl get endpoints
 ### Minikube Management
 ```bash
 minikube start                                    # Start Minikube cluster
+minikube tunnel                                   # Enable LoadBalancer access (required for Ingress)
 minikube ssh                                      # SSH into Minikube environment
 crictl images                                     # List container images (inside Minikube)
 minikube dashboard                                # Open Kubernetes dashboard
@@ -263,11 +263,36 @@ minikube addons enable ingress                    # Enable NGINX Ingress control
 minikube stop                                     # Stop Minikube cluster
 ```
 
+### Accessing Services via Ingress
+
+**Prerequisites:**
+1. Run `minikube tunnel` in a separate terminal (required for LoadBalancer access)
+2. Add host mapping to `/etc/hosts`:
+   ```
+   127.0.0.1 api.localhost
+   ```
+
+**API Access Examples:**
+```bash
+# Gateway endpoints
+curl http://api.localhost/health
+curl http://api.localhost/ucase
+
+# Routed services
+curl http://api.localhost/person/health
+curl http://api.localhost/address/health
+curl http://api.localhost/config/person-service/kubernetes
+```
+
+**Note:** `minikube tunnel` must be running to access Ingress endpoints. Without it, LoadBalancer services remain in "Pending" state.
+
 ### Docker Environment
 ```bash
 eval $(minikube docker-env)                       # Point Docker to Minikube's Docker engine
 eval $(minikube docker-env -u)                    # Revert to local Docker
 ```
+
+**Important:** Docker images must be built within Minikube's Docker environment using `eval $(minikube docker-env)` before deployment. Otherwise, Kubernetes deployments will fail with "ImagePullBackOff" or "ErrImagePull" errors since the images don't exist in Minikube's registry.
 
 ### Namespace Operations
 ```bash
