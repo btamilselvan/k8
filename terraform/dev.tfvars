@@ -1,0 +1,1 @@
+platform_iam_user_arn="arn:aws:iam::194205500841:user/trocks-eks"
