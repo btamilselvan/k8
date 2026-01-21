@@ -1,0 +1,44 @@
+version: 0.2
+# buidspec used to build docker image and push to ECR
+env:
+  parameter-store:
+    DOCKERHUB_USERNAME: /CodeBuild/dockerUserName
+    DOCKERHUB_PASSWORD: /CodeBuild/dockerLoginPassword
+phases:
+  install:
+    runtime-versions:
+        java: corretto21
+  pre_build:
+    commands:
+        - aws --version
+        - java --version
+        - echo "ecr login...."
+        - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+        - echo "dockerhub login...."
+        - echo $DOCKERHUB_PASSWORD | docker login --username $DOCKERHUB_USERNAME --password-stdin
+        - echo $CODEBUILD_RESOLVED_SOURCE_VERSION
+        - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+        - echo commit hash is $COMMIT_HASH
+        - IMAGE_TAG=${COMMIT_HASH:=latest}
+        - echo Image Tag is $IMAGE_TAG
+        - echo $CODEBUILD_SRC_DIR
+  build:
+    commands:
+        - java -version
+        - echo "building gateway-service..."
+        - cd $CODEBUILD_SRC_DIR/spring-cloud-k8
+        - mvn clean package -pl gateway-service -am -DskipTests
+        - cd $CODEBUILD_SRC_DIR/spring-cloud-k8/gateway-service
+        - docker build -t gateway-service:latest -f CICD/Dockerfile .
+        - docker tag gateway-service:latest $REPOSITORY_URI:$IMAGE_TAG
+  post_build:
+    commands:
+        - echo Pushing the Docker images...
+        - docker push $REPOSITORY_URI:$IMAGE_TAG
+        - printf '[{"name":"gateway-service", "imageUri":"%s:%s"}]' $REPOSITORY_URI $IMAGE_TAG > imagedefinitions.json
+artifacts:
+  files:
+    - imagedefinitions.json
+cache:
+  paths:
+     - '/root/.m2/**/*'
