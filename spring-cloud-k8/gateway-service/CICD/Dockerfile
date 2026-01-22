@@ -3,7 +3,7 @@ FROM eclipse-temurin:21-jre-alpine
 ENV profile=dev
 
 # Add the application's jar to the container
-COPY ../target/gateway-service.jar /app/gateway-service.jar
+COPY target/gateway-service.jar /app/gateway-service.jar
 
 WORKDIR /app
 
