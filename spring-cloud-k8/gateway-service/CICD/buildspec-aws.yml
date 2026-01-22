@@ -36,7 +36,10 @@ phases:
         - echo Pushing the Docker images...
         - docker push $REPOSITORY_URI:$IMAGE_TAG
         - printf '[{"name":"gateway-service", "imageUri":"%s:%s"}]' $REPOSITORY_URI $IMAGE_TAG > imagedefinitions.json
+        - echo "pushed to ecr successfully"
+        - pwd
 artifacts:
+  base-directory: spring-cloud-k8/gateway-service
   files:
     - imagedefinitions.json
 cache:
