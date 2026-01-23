@@ -39,15 +39,34 @@ module "eks" {
   addons = {
     coredns = {
       #   most_recent = true # AWS automatically selects a default version
+      # add node selector and tolerations to run on system nodes only
+      # coreDNS does not run on all nodes by default
+      configuration_values = jsonencode({
+        nodeSelector = {
+          "role" = "system"
+        }
+        tolerations = [
+          {
+            key      = "node-role.kubernetes.io/system"
+            operator = "Equal"
+            value    = "true"
+            effect   = "NoSchedule"
+          }
+        ]
+      })
     }
     kube-proxy = {
       #   most_recent = true
+      # these pods should run on all nodes - and AWS adds tolerations by default
     }
     vpc-cni = {
       #   most_recent = true
+      before_compute = true ## important - to ensure this is created before node groups - required for networking
+      # these pods should run on all nodes - and AWS adds tolerations by default
     }
     eks-pod-identity-agent = {
-      #   before_compute = true
+      before_compute = true ## important - to ensure this is created before node groups
+      # these pods should run on all nodes - and AWS adds tolerations by default
     }
   }
 
@@ -56,9 +75,10 @@ module "eks" {
     system-node-group = {
       name           = "system-node-group"
       ami_type       = "AL2023_x86_64_STANDARD"
+      ami_release_version = "1.34.2-20260114" #optional - to pin to a specific AMI version
       instance_types = ["t2.micro"]
       min_size       = 2
-      max_size       = 5
+      max_size       = 3
       desired_size   = 2
       labels = {
         role = "system"
@@ -74,10 +94,11 @@ module "eks" {
     app-node-group = {
       name           = "app-node-group"
       ami_type       = "AL2023_x86_64_STANDARD"
+      ami_release_version = "1.34.2-20260114" #optional - to pin to a specific AMI version
       instance_types = ["t2.micro"]
-      min_size       = 1
-      max_size       = 3
-      desired_size   = 1
+      min_size       = 2
+      max_size       = 5
+      desired_size   = 3
       labels = {
         role = "app"
         name = "app"
@@ -86,23 +107,22 @@ module "eks" {
   }
 
   access_entries = {
-      platform_admin = {
-        principal_arn = var.cluster_platform_admin_role
+    platform_admin = {
+      principal_arn = var.cluster_platform_admin_role
 
-        policy_associations = {
-          admin = {
-            policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-            #   access_scope = {
-            #     namespaces = ["default"]
-            #     type       = "namespace"
-            #   }
+      policy_associations = {
+        admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
           }
         }
       }
     }
+  }
 
-    tags = {
-      Environment = terraform.workspace
-      Terraform   = "true"
-    }
+  tags = {
+    Environment = terraform.workspace
+    Terraform   = "true"
+  }
 }

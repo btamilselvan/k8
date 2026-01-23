@@ -10,3 +10,10 @@ provider "aws" {
 # provider "kubernetes" {
 #   config_path = "~/.kube/config"
 # }
+
+## Optional: If you want to use the helm provider with local kubeconfig file
+# provider "helm" {
+#   kubernetes = {
+#     config_path = "~/.kube/config"
+#   }
+# }

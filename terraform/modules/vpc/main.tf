@@ -1,3 +1,6 @@
+variable "cluster_name" {
+  
+}
 # create vpc, private and public subnets, NAT gateway and output vpc_id, private and public subnets IDs
 resource "aws_vpc" "trocks_vpc" {
   cidr_block           = "10.0.0.0/16"
@@ -27,6 +30,8 @@ resource "aws_subnet" "public_subnet_1" {
 
   tags = {
     Name = "trocks-public-subnet-1"
+    "kubernetes.io/cluster/${var.cluster_name}" = "shared"
+    "kubernetes.io/role/elb" = "1"
   }
 }
 
@@ -38,6 +43,8 @@ resource "aws_subnet" "public_subnet_2" {
 
   tags = {
     Name = "trocks-public-subnet-2"
+    "kubernetes.io/cluster/${var.cluster_name}" = "shared"
+    "kubernetes.io/role/elb" = "1"
   }
 }
 
@@ -49,6 +56,8 @@ resource "aws_subnet" "private_subnet_1" {
 
   tags = {
     Name = "trocks-private-subnet-1"
+    "kubernetes.io/cluster/${var.cluster_name}" = "shared"
+    "kubernetes.io/role/internal-elb" = "1"
   }
 }
 
@@ -59,6 +68,8 @@ resource "aws_subnet" "private_subnet_2" {
 
   tags = {
     Name = "trocks-private-subnet-2"
+    "kubernetes.io/cluster/${var.cluster_name}" = "shared"
+    "kubernetes.io/role/internal-elb" = "1"
   }
 }
 

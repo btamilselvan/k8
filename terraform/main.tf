@@ -11,11 +11,29 @@ terraform {
       source  = "hashicorp/kubernetes"
       version = ">= 3.0"
     }
+    helm = {
+      source  = "hashicorp/helm"
+      version = ">= 3.1.1"
+    }
   }
   backend "s3" {
     bucket = "trocks-eks-tfstate-develop"
     key    = "tfstate"
     region = "us-east-2"
+  }
+}
+
+### workspace validation - Start
+# Validate that the workspace is one of the allowed values
+locals {
+  allowed_workspaces = ["dev", "staging", "production"]
+}
+resource "null_resource" "workspace_validation" {
+  lifecycle {
+    precondition {
+      condition     = terraform.workspace != "default" && contains(local.allowed_workspaces, terraform.workspace)
+      error_message = "Workspace cannot be 'default'"
+    }
   }
 }
 
@@ -41,24 +59,64 @@ module "eks" {
 }
 ## Phase 1 - End
 
-## Phase 2 - kubernetes provider module - Start
-# This should be done after the EKS cluster is created in Phase 1
-# Configure the kubernetes provider to connect to the EKS cluster created in Phase 1
-module "eks_provider" {
-  depends_on             = [module.eks]
-  source                 = "./modules/k8-access"
-  cluster_name           = module.eks.cluster_name
-  cluster_endpoint       = module.eks.cluster_endpoint
-  cluster_cert_auth_data = module.eks.cluster_cert_auth_data
-  role_arn               = module.iam.platform_admin_role_arn
+## Phase 2 - kubernetes provider configuration - Start
+# Configure Kubernetes provider using EKS module outputs
+
+data "aws_eks_cluster_auth" "trocks_eks" {
+  name = module.eks.cluster_name
 }
+
+provider "kubernetes" {
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_cert_auth_data)
+  token                  = data.aws_eks_cluster_auth.trocks_eks.token
+}
+
+# configure helm provider
+provider "helm" {
+  kubernetes = {
+    host                   = module.eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks.cluster_cert_auth_data)
+    token                  = data.aws_eks_cluster_auth.trocks_eks.token
+    # exec = {
+    #   api_version = "client.authentication.k8s.io/v1beta1"
+    #   args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
+    #   command     = "aws"
+    # }
+  }
+}
+
+# provider "kubernetes" {
+#   host                   = module.eks.cluster_endpoint
+#   cluster_ca_certificate = base64decode(module.eks.cluster_cert_auth_data)
+#   exec {
+#     api_version = "client.authentication.k8s.io/v1beta1"
+#     command     = "aws"
+#     args = [
+#       "eks",
+#       "get-token",
+#       "--cluster-name",
+#         module.eks.cluster_name,
+#       "--role-arn",
+#       module.iam.platform_admin_role_arn
+#     ]
+#   }
+# }
+
 ## Phase 2 - End
 
 # Step 3 - k8s resources - Start
-# This should be done after the EKS cluster is created in Phase 1
-# Add your kubernetes resources here using the kubernetes provider configured in the eks_provider module
+# Kubernetes resources using the provider configured above
 module "k8_resources" {
-  depends_on = [module.eks_provider]
-  source     = "./modules/k8-resources"
+  depends_on        = [module.eks]
+  source            = "./modules/k8-resources"
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  cluster_name      = module.eks.cluster_name
+  #   vpc_id                      = module.vpc.vpc_id
+  vpc_id = "vpc-31ce655a"
+}
+## cicd module
+module "cicd" {
+  source = "./modules/cicd"
 }
 # Step 3 - k8s resources - End
