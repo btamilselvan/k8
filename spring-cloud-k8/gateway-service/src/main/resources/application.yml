@@ -14,8 +14,13 @@ logging:
     org.springframework.web.mvc: DEBUG
     reactor.ipc.netty: DEBUG
     reactor.netty: DEBUG
+    org.springframework.cloud.kubernetes: TRACE
+    org.springframework.cloud.loadbalancer: DEBUG
 
 spring:
+  cloud:
+    kubernetes:
+      enabled: false #disable kubernetes integration by default
   threads:
     virtual:
       enabled: true
@@ -70,8 +75,10 @@ spring:
   config.activate.on-profile: kubernetes
   cloud:
     kubernetes:
+      enabled: true #enable kubernetes integration
       loadbalancer:
         mode: POD #default is POD mode
+        portName: http #port name to be used for loadbalancing (should match the service port name)
       discovery:
         namespaces:
           - ${namespace:default} #namespace where the services are deployed
