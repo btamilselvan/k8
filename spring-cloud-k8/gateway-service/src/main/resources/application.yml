@@ -71,7 +71,7 @@ spring:
   cloud:
     kubernetes:
       loadbalancer:
-        mode: SERVICE #use SERVICE for internal cluster load balancing
+        mode: POD #default is POD mode
       discovery:
         namespaces:
           - ${namespace:default} #namespace where the services are deployed
