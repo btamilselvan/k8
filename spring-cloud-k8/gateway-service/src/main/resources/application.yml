@@ -72,7 +72,7 @@ spring:
     kubernetes:
       discovery:
         namespaces:
-          - default
+          - ${namespace:default} #namespace where the services are deployed
         service-labels:
           discovery-enabled: "true" #this points to the metadata labels of the target services
 gateway.routes:
