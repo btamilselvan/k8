@@ -52,12 +52,13 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-kubernetes-client</artifactId>
         </dependency>
+        <!-- This is required to enable loadbalancer to work with kubernetes service discovery -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-kubernetes-client-loadbalancer</artifactId>
         </dependency>
 
-        <!-- This is required for loadbalancing -->
+        <!-- This is required for loadbalancing in non kubernetes environments -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-loadbalancer</artifactId>
