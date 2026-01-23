@@ -8,4 +8,4 @@ COPY target/gateway-service.jar /app/gateway-service.jar
 WORKDIR /app
 
 # Run the jar file 
-ENTRYPOINT ["java", "-jar", "-Dspring.profiles.active=${profile}", "gateway-service.jar"]
+ENTRYPOINT ["java", "-jar", "gateway-service.jar"]

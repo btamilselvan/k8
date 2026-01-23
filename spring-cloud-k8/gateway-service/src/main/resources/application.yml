@@ -122,4 +122,5 @@ gateway.routes:
   person-service-uri: lb://person-service
   address-service-uri: lb://address-service
   config-server-uri: lb://cloud-config-server #config server service - just for testing purpose
+
   
