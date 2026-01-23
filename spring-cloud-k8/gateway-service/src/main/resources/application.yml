@@ -70,8 +70,6 @@ spring:
   config.activate.on-profile: kubernetes
   cloud:
     kubernetes:
-      loadbalancer:
-        mode: SERVICE
       discovery:
         namespaces:
           - ${namespace:default} #namespace where the services are deployed
