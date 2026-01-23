@@ -19,18 +19,18 @@ spring:
     kubernetes:
       discovery:
         namespaces:
-          - default
+          - ${namespace:default}
         service-labels:
           discovery-enabled: "true" #this points to the metadata labels of the target services
       config: # this is optional but set if you want to specify particular configmaps to load
         name: person-service
-        namespace: default
+        namespace: ${namespace:default}
         sources:
           - name: person-service
       secrets: # this is optional but set if you want to specify particular configmaps to load
         enabled: true #by default secrets loading is disabled when loaded via spring.config.import
         name: person-service
-        namespace: default
+        namespace: ${namespace:default}
         sources:
           - name: person-service
 ---
