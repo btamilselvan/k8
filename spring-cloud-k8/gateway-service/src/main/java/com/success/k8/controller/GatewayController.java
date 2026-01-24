@@ -36,8 +36,9 @@ public class GatewayController {
   }
 
   @GetMapping("/debug-instances/{serviceId}")
-  public List<ServiceInstance> getInstances(@PathVariable String serviceId) {
+  public List<ServiceInstance> getInstances(@PathVariable("serviceId") String serviceId) {
     // This is exactly what the LoadBalancer calls internally
+    log.info("Getting instances for service id: {}", serviceId);
     return discoveryClient.getInstances(serviceId);
   }
 }
