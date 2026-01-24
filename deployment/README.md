@@ -26,6 +26,10 @@
 | scheduler               | Decides which runway (node) to use          |
 | controller-manager      | Monitors flights, gates, baggage operations |
 
+### Kubelet
+The kubelet is the primary "node agent" that runs on each node. It can register the node with the apiserver using one of: the hostname; a flag to override the hostname; or specific logic for a cloud provider.
+
+The kubelet works in terms of a PodSpec. A PodSpec is a YAML or JSON object that describes a pod. The kubelet takes a set of PodSpecs that are provided through various mechanisms (primarily through the apiserver) and ensures that the containers described in those PodSpecs are running and healthy. The kubelet doesn't manage containers which were not created by Kubernetes.
 
 ## The Core Principle
 
@@ -202,6 +206,8 @@ etcd is strong consistency.
 
 Everything in Kubernetes is state — and state lives in etcd.
 ```
+
+- Make sure to set ```discover-enabled``` label to make services discovered by spring k8 discovery client.
 
 ## Autoscaling
 - HPA (Horizontal Pod Autoscaler) - Sclaes Pods
@@ -489,6 +495,8 @@ data:
 - We dot not create RABC Groups. Group exists only by name.
 - Make sure to include the correct ```apiGroup``` in the role definition.
 - ```kube-system``` is a built-in namespace created automatically when a cluster is initialized.
+- Make sure to add toleration for coreDNS addon
+- Make sure to add ```before_compute``` flag for vpc-cni and eks-pod-identity-agent addons. Without that the nodes can't register with API server.
 
 ### How to access the API server using kubectl
 
@@ -688,5 +696,55 @@ This pod can run on nodes tainted with:
 - Never run prod services with 1 replica.
 - PodDisruptionBudget - Prevents too many pods from being evicted at once.
 
+## Helm
+- Kubernetes/Helm, however, did create a "Secret" to track the release before it crashed.
+- Helm cannot detect drifts.
+
+## Deployement approach
+###
+Layer,Tool,Your Logic
+Infra,Terraform,"VPC, EKS, IAM, and the ALB Controller."
+CI,CodePipeline,Build Docker image → Push to ECR.
+CD,CodePipeline,Runs a script to helm upgrade your app.
+
+
+Infrastructure (Terraform): Still used for VPC, EKS, and "Cluster Bootstrapping" (installing the ALB Controller and ArgoCD).
+
+CI (CodePipeline): Still builds the Docker image, but instead of "deploying," it simply updates a Git repo with the new image tag.
+
+CD (ArgoCD): An agent inside the cluster watches your Git repo. When it sees the new tag, it automatically "pulls" the change and updates the cluster.
+
+## ArgoCD
+
+ArgoCD is a declarative, GitOps continuous delivery tool for Kubernetes.
+
+```Think of it as a "Permanent Watchman" that sits between your Git repository (the "Truth") and your Kubernetes cluster (the "Reality"). Its sole job is to ensure that what is defined in Git is exactly what is running in your cluster.```
+
+### Capabilities
+1) ArgoCD constantly compares the Desired State (Git) with the Live State (EKS).
+  - It checks the cluster every 3 minutes (by default).
+2) Automatic Drift Detection & Correction.
+3) Multi-Cluster Management.
+4) Support for Multiple Manifest Tools
+
+### How ArgoCD "Uses" Helm Internally
+
+When you point ArgoCD at a Helm chart, it goes through a three-step process:
+
+1) Rendering (helm template): ArgoCD runs the equivalent of helm template . --values values.yaml. It takes your chart and your values and turns them into raw, plain Kubernetes YAML manifests.
+
+2) Comparison (The "Diff"): It compares that raw YAML against what is currently running in your EKS cluster.
+
+3) Application (kubectl apply): If there’s a difference, it sends that raw YAML to the Kubernetes API using the same logic as kubectl apply.
+
 ## References
 - https://docs.aws.amazon.com/cli/latest/reference/eks/update-kubeconfig.html
+- https://github.com/terraform-aws-modules/terraform-aws-eks/blob/master/examples/eks-managed-node-group/eks-bottlerocket.tf
+- https://registry.terraform.io/modules/terraform-aws-modules/iam/aws/6.3.0
+- https://github.com/aws/eks-charts/tree/master/stable/aws-load-balancer-controller
+- https://artifacthub.io/packages/helm/aws/aws-load-balancer-controller
+- https://helm.sh/docs/topics/charts/
+- https://helm.sh/docs/chart_template_guide/values_files/
+- https://developer.hashicorp.com/terraform/tutorials/kubernetes/helm-provider?in=terraform%2Fkubernetes
+
+

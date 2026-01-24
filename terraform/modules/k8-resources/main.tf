@@ -12,6 +12,20 @@ resource "kubernetes_namespace_v1" "trocks_namespace" {
   }
 }
 
+resource "kubernetes_namespace_v1" "argocd_namespace" {
+  metadata {
+    annotations = {
+      name = "argoCD-ns"
+    }
+
+    labels = {
+      Environment = terraform.workspace
+    }
+
+    name = "argocd"
+  }
+}
+
 # ## allow the ALB controller to describe load balancers
 # module "iam_policy" {
 #   source = "terraform-aws-modules/iam/aws//modules/iam-policy"
@@ -47,8 +61,8 @@ module "iam" {
 
   name = "k8-alb-controller-${var.cluster_name}"
 
-  attach_vpc_cni_policy = true
-  vpc_cni_enable_ipv4   = true
+  attach_vpc_cni_policy                  = true
+  vpc_cni_enable_ipv4                    = true
   attach_load_balancer_controller_policy = true
 
   oidc_providers = {
@@ -141,10 +155,72 @@ resource "helm_release" "aws_load_balancer_controller" {
   ]
 }
 
-# #app chart
-# resource "helm_release" "gateway_service" {
-#   name      = "gateway-service"
-#   chart     = "${path.module}/apps/gateway-service"
-#   namespace = kubernetes_namespace_v1.trocks_namespace.metadata[0].name
-#   # version       = "1.0.0"
-# }
+#app chart - create only ingress (ALB) for gateway-service
+resource "helm_release" "gateway_service" {
+  name      = "gateway-service"
+  chart     = "${path.module}/apps/base-service"
+  namespace = kubernetes_namespace_v1.trocks_namespace.metadata[0].name
+  # version       = "1.0.0"
+
+  set = [{
+    name  = "ingress.enabled"
+    value = true
+    },
+    {
+      name  = "namespace"
+      value = kubernetes_namespace_v1.trocks_namespace.metadata[0].name
+    },
+    # {
+    #   name  = "app.name"
+    #   value = "gateway-service"
+    # },
+    # {
+    #   name  = "spring.profiles.active"
+    #   value = terraform.workspace == "prod" ? "prod,kubernetes" : "dev,kubernetes"
+    # }
+  ]
+}
+
+resource "helm_release" "argocd" {
+  depends_on       = [helm_release.gateway_service]
+  name             = "argocd"
+  repository       = "https://argoproj.github.io/argo-helm"
+  chart            = "argo-cd"
+  namespace        = kubernetes_namespace_v1.argocd_namespace.metadata[0].name
+  # create_namespace = true
+
+  set = [
+    {
+      name  = "global.tolerations[0].key"
+      value = "node-role.kubernetes.io/system"
+    },
+    {
+      name  = "global.tolerations[0].operator"
+      value = "Equal"
+    },
+    {
+      name  = "global.tolerations[0].value"
+      value = "true"
+      type = "string"
+    },
+    {
+      name  = "global.tolerations[0].effect"
+      value = "NoSchedule"
+    },
+    {
+      name  = "global.nodeSelector.role"
+      value = "system"
+    },
+    {
+      #Disable internal TLS so ALB can talk to it over HTTP
+      name  = "server.extraArgs"
+      value = "{--insecure,--rootpath=/argo-cd}"
+    },
+    {
+      #Update the base href for the UI
+      name  = "configs.params.server.basehref"
+      value = "/argo-cd"
+    }
+  ]
+
+}

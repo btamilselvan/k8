@@ -1,2 +1,5 @@
+ingress:
+  enabled: false
+namespace: terraform-trocks-namespace
 app:
   name: gateway-service

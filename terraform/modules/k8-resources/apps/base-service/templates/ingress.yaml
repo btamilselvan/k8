@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: api-ingress
-  #namespace: trocks-api
+  namespace: {{ .Values.namespace }}
   annotations:
     # nginx.ingress.kubernetes.io/rewrite-target: /$1
     kubernetes.io/ingress.class: alb
@@ -10,6 +10,21 @@ metadata:
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
     alb.ingress.kubernetes.io/healthcheck-path: /actuator/health
+    
+    # THE KEY: This name must be the same across all Ingresses sharing the ALB
+    alb.ingress.kubernetes.io/group.name: trocks-alb
+
+    # Optional: Specify security groups for the ALB
+    # alb.ingress.kubernetes.io/security-groups: sg-0abcd1234efgh5678
+    
+    # Optional: To manage security group rules automatically
+    # alb.ingress.kubernetes.io/manage-backend-security-group-rules: "true"
+    
+    # For HTTPS support, uncomment the lines below and provide your certificate ARN
+    # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:123456789012:certificate/abcd1234-ef56-7890-ab12-cd34ef567890
+    
+    # For WAF integration, uncomment the line below and provide your WAF ARN
+    # alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:us-east-1:123456789012:regional/webacl/my-web-acl/abcd1234-ef56-7890-ab12-cd34ef567890
 spec:
   # ingressClassName: nginx #for NGINX Ingress Controller (minikube)
   ingressClassName: alb #for AWS ALB Ingress Controller
@@ -24,4 +39,35 @@ spec:
                 # name: gateway-service 
                 name: {{ .Values.app.name }} #fetching the app name from Values.yaml
                 port:
-                  number: 80 #service port defined in service-gateway-service.yml
+                  number: 80 #service port defined in service-gateway-service.
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-ingress
+  namespace: argocd
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    # THE KEY: This name must be the same across all Ingresses sharing the ALB
+    alb.ingress.kubernetes.io/group.name: trocks-alb
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+    # ArgoCD internal health check path
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
+    # Tells ALB to talk to ArgoCD via HTTP (since we'll use --insecure)
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+  labels:
+    app.kubernetes.io/name: argocd-ingress
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /argo-cd
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 80

@@ -1,8 +1,3 @@
-resource "aws_codestarconnections_connection" "github" {
-  name          = "Github"
-  provider_type = "GitHub"
-}
-
 resource "aws_codebuild_project" "build" {
   artifacts {
     type = "CODEPIPELINE"
@@ -56,7 +51,7 @@ resource "aws_codepipeline" "pipeline" {
       version          = "1"
       output_artifacts = ["source_output"]
       configuration = {
-        ConnectionArn    = aws_codestarconnections_connection.github.arn
+        ConnectionArn    = var.codestar_connection_arn
         FullRepositoryId = var.git_repo_id
         BranchName       = var.git_branch_name
         DetectChanges    = false

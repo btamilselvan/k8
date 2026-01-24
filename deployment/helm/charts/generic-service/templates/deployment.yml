@@ -1,32 +1,35 @@
 # Deployment configuration for gateway-service, person-service, and address-service
+{{- range $appName, $appConfig := .Values.apps }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gateway-service #just the name of the service
-  #namespace: trocks-api
+  name: {{ $appName }} #just the name of the service
+  namespace: {{ $.Values.namespace }}
   labels:
-    app: gateway-service
+    app: {{ $appName }}
 spec: #deployment spec
-  replicas: 2 # number of pod replicas
+  replicas: {{ $appConfig.replicas }} # number of pod replicas
   selector:
     matchLabels:
-      app: gateway-service #this should match the label in the pod template below
+      app: {{ $appName }} #this should match the label in the pod template below
   template: #pod template
     metadata:
       labels:
-        app: gateway-service #this should match the label in the selector above
+        app: {{ $appName }} #this should match the label in the selector above
     spec: #pod spec
       serviceAccountName: gateway-trocks-account # ServiceAccount for RBAC permissions (must match the name in access-control.yml)
       containers:
-        - name: gateway-service
-          image: gateway-service:latest
+        - name: {{ $appName }}
+          image: {{ $appConfig.image.repository }}:{{ $appConfig.image.tag }}
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080 # Exposed port inside the container
           env:
             - name: SPRING_PROFILES_ACTIVE
-              value: "dev,kubernetes"
+              value: {{ quote $.Values.spring.profiles.active }}
+            - name: namespace
+              value: {{ quote $.Values.namespace }}
             # - name: AWS_REGION
             #   valueFrom:
             #     configMapKeyRef:
@@ -42,3 +45,4 @@ spec: #deployment spec
             #     secretKeyRef:
             #       name: trocks-aws-secrets
             #       key: AWS_SECRET_ACCESS_KEY
+{{ end }}

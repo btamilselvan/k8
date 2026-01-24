@@ -15,6 +15,11 @@ module "iam" {
   cicd_bucket_name = module.s3_cicd_bucket.bucket_name
 }
 
+resource "aws_codestarconnections_connection" "github" {
+  name          = "Github"
+  provider_type = "GitHub"
+}
+
 module "pipeline" {
   source = "./pipeline"
   for_each  = local.services
@@ -24,4 +29,5 @@ module "pipeline" {
   git_repo_id = each.value.repo
   service_name = each.value.name
   git_branch_name = each.value.branch
+  codestar_connection_arn = aws_codestarconnections_connection.github.arn
 }

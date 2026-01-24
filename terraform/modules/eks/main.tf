@@ -73,13 +73,16 @@ module "eks" {
   # Node groups
   eks_managed_node_groups = {
     system-node-group = {
-      name           = "system-node-group"
-      ami_type       = "AL2023_x86_64_STANDARD"
-      ami_release_version = "1.34.2-20260114" #optional - to pin to a specific AMI version
-      instance_types = ["t2.micro"]
-      min_size       = 2
-      max_size       = 3
-      desired_size   = 2
+      name                   = "system-node-group"
+      ami_type               = "AL2023_x86_64_STANDARD"
+      ami_release_version    = "1.34.2-20260120" #optional - to pin to a specific AMI version
+      force_update_version   = false
+      create_launch_template = true
+      launch_template_name   = "system-node-group-template"
+      instance_types         = ["t2.small"]
+      min_size               = 2
+      max_size               = 4
+      desired_size           = 3
       labels = {
         role = "system"
         name = "system"
@@ -90,15 +93,21 @@ module "eks" {
         effect = "NO_SCHEDULE"
         }
       }
+      lifecycle = {
+        ignore_changes = ["ami_release_version", "release_version"]
+      }
     }
     app-node-group = {
-      name           = "app-node-group"
-      ami_type       = "AL2023_x86_64_STANDARD"
-      ami_release_version = "1.34.2-20260114" #optional - to pin to a specific AMI version
-      instance_types = ["t2.micro"]
-      min_size       = 2
-      max_size       = 5
-      desired_size   = 3
+      name                   = "app-node-group"
+      ami_type               = "AL2023_x86_64_STANDARD"
+      ami_release_version    = "1.34.2-20260120" #optional - to pin to a specific AMI version
+      force_update_version   = false
+      create_launch_template = true
+      launch_template_name   = "app-node-group-template"
+      instance_types         = ["t2.small"]
+      min_size               = 2
+      max_size               = 5
+      desired_size           = 3
       labels = {
         role = "app"
         name = "app"
