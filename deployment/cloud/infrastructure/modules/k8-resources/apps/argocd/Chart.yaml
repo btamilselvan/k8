@@ -1,0 +1,10 @@
+apiVersion: v1
+name: alb-ingress
+description: ALB Ingress for ArgoCD and other apps
+type: application
+version: 1.0.0 #chart version
+appVersion: 1.0.0
+keywords:
+  - argocd
+  - alb
+  - ingress

@@ -1,1 +1,6 @@
 platform_iam_user_arn="arn:aws:iam::194205500841:user/trocks-eks"
+cluster_name="trocks-eks"
+#argocd_ui_password="S0larP0wer_8473"
+argocd_ui_password="$2a$10$W1ywL80nr/fmRPJ4yoCls.pefjrWhcRoQBMa0hfOlfrIzlo7X1Yi2"
+# argocd_ui_password_encrypted="true"
+argocd_ui_password_modified_at="2026-01-28T19:46:45Z"

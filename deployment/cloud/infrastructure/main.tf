@@ -15,6 +15,10 @@ terraform {
       source  = "hashicorp/helm"
       version = ">= 3.1.1"
     }
+    # argocd = {
+    #   source  = "argoproj-labs/argocd"
+    #   version = "7.12.5"
+    # }
   }
   backend "s3" {
     bucket = "trocks-eks-tfstate-develop"
@@ -40,7 +44,8 @@ resource "null_resource" "workspace_validation" {
 ## Phase 1 - Start
 # VPC module
 # module "vpc" {
-#   source = "./modules/vpc"
+#   source       = "./modules/vpc"
+#   cluster_name = var.cluster_name
 # }
 
 module "iam" {
@@ -56,6 +61,9 @@ module "eks" {
   #   subnet_ids                  = module.vpc.private_subnet_ids
   subnet_ids                  = ["subnet-e9c11282", "subnet-b3d2dbc9", "subnet-1bc4b557"]
   cluster_platform_admin_role = module.iam.platform_admin_role_arn
+  cluster_name                = var.cluster_name
+  # network_cidr                = module.vpc.network_cidr #enable this line when enabling vpc module
+  network_cidr = var.network_cidr
 }
 ## Phase 1 - End
 
@@ -108,12 +116,15 @@ provider "helm" {
 # Step 3 - k8s resources - Start
 # Kubernetes resources using the provider configured above
 module "k8_resources" {
-  depends_on        = [module.eks]
+  # depends_on        = [module.eks]
   source            = "./modules/k8-resources"
   oidc_provider_arn = module.eks.oidc_provider_arn
   cluster_name      = module.eks.cluster_name
-  #   vpc_id                      = module.vpc.vpc_id
-  vpc_id = "vpc-31ce655a"
+#   vpc_id                      = module.vpc.vpc_id
+  vpc_id                         = "vpc-31ce655a"
+  alb_security_group_id          = module.eks.alb_security_group_id
+  argocd_ui_password             = var.argocd_ui_password
+  argocd_ui_password_modified_at = var.argocd_ui_password_modified_at
 }
 ## cicd module
 module "cicd" {

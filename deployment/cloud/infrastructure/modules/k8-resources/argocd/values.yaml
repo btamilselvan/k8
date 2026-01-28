@@ -1,0 +1,4 @@
+namespace: argocd
+alb_group_name: trocks-k8-shared-alb
+ingress:
+  name: argocd-ingress
