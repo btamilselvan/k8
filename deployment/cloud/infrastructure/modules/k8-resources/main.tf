@@ -7,6 +7,19 @@ terraform {
   }
 }
 
+resource "aws_acm_certificate" "trocks" {
+  domain_name       = var.trocks_domain_name
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_acm_certificate_validation" "cert_validation" {
+  certificate_arn = aws_acm_certificate.trocks.arn
+}
+
 resource "kubernetes_namespace_v1" "trocks_namespace" {
   metadata {
     annotations = {

@@ -125,6 +125,7 @@ module "k8_resources" {
   alb_security_group_id          = module.eks.alb_security_group_id
   argocd_ui_password             = var.argocd_ui_password
   argocd_ui_password_modified_at = var.argocd_ui_password_modified_at
+  trocks_domain_name = var.trocks_domain_name
 }
 ## cicd module
 module "cicd" {

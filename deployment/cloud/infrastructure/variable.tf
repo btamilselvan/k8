@@ -13,3 +13,5 @@ variable "argocd_ui_password" {
 }
 variable "argocd_ui_password_modified_at" {
 }
+variable "trocks_domain_name" {
+}

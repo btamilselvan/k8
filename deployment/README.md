@@ -737,6 +737,15 @@ When you point ArgoCD at a Helm chart, it goes through a three-step process:
 
 3) Application (kubectl apply): If there’s a difference, it sends that raw YAML to the Kubernetes API using the same logic as kubectl apply.
 
+## GitOps
+
+GitOps is a modern operational framework that applies DevOps best practices (version control, code review, CI/CD) to infrastructure automation, using Git as the single source of truth for declaring the desired state of applications and infrastructure. Changes are made via Git commits (pull requests), and automated agents (operators) continuously sync the live environment to match the repository, enabling faster, more reliable, and auditable deployments, especially for Kubernetes.
+
+- Git as the Source of Truth: All desired configurations (infrastructure, apps, policies) are stored as declarative code in a Git repository.
+- Declarative Approach: Instead of scripting how to get to a state, you declare what the final state should be (e.g., using Kubernetes YAML, Terraform).
+- Automated Sync: An agent (like Argo CD or Flux) runs in the cluster, continuously comparing the live state to the Git repo.
+- Convergence: When differences (drift) are detected, the agent automatically pulls changes from Git and applies them to the cluster, bringing it back to the desired state.
+
 ## References
 - https://docs.aws.amazon.com/cli/latest/reference/eks/update-kubeconfig.html
 - https://github.com/terraform-aws-modules/terraform-aws-eks/blob/master/examples/eks-managed-node-group/eks-bottlerocket.tf
