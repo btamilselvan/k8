@@ -137,7 +137,7 @@ resource "helm_release" "alb_ingress" {
   # version       = "1.0.0"
 
   set = [{
-    name  = "alb_group_name"
+    name  = "alb.group_name"
     value = "trocks-k8-shared-alb"
     },
     {
@@ -147,11 +147,15 @@ resource "helm_release" "alb_ingress" {
     {
       name  = "ingress.name"
       value = local.ingress_name
+    },
+    {
+      name = "alb.certificate_arn"
+      value = aws_acm_certificate_validation.cert_validation.certificate_arn
     }
   ]
 }
 
-# argoCD controller - this will create the argocd controller, 
+# argoCD controller - this will create the argocd controller, ALB target group
 resource "helm_release" "argocd" {
   depends_on = [helm_release.aws_load_balancer_controller]
   name       = "argocd"
@@ -245,42 +249,42 @@ resource "helm_release" "argocd" {
       # value = timestamp()
       value = var.argocd_ui_password_modified_at ## constant value to avoid changes on every apply
     },
-    {
-      name  = "server.additionalApplications[0].name"
-      value = "trocks-master-app"
-    },
-    {
-      name  = "server.additionalApplications[0].namespace"
-      value = kubernetes_namespace_v1.argocd_namespace.metadata[0].name
-    },
-    {
-      name  = "server.additionalApplications[0].source.repoURL"
-      value = local.argocd.repo_url
-    },
-    {
-      name  = "server.additionalApplications[0].source.targetRevision"
-      value = "develop"
-    },
-    {
-      name  = "server.additionalApplications[0].source.path"
-      value = "bootstrap"
-    },
-    {
-      name  = "server.additionalApplications[0].destination.server"
-      value = "https://kubernetes.default.svc"
-    },
-    {
-      name  = "server.additionalApplications[0].destination.namespace"
-      value = kubernetes_namespace_v1.argocd_namespace.metadata[0].name
-    },
-    {
-      name  = "server.additionalApplications[0].syncPolicy.automated.prune"
-      value = "true"
-    },
-    {
-      name  = "server.additionalApplications[0].syncPolicy.automated.selfHeal"
-      value = "true"
-    }
+    # {
+    #   name  = "server.additionalApplications[0].name"
+    #   value = "trocks-master-app"
+    # },
+    # {
+    #   name  = "server.additionalApplications[0].namespace"
+    #   value = kubernetes_namespace_v1.argocd_namespace.metadata[0].name
+    # },
+    # {
+    #   name  = "server.additionalApplications[0].source.repoURL"
+    #   value = local.argocd.repo_url
+    # },
+    # {
+    #   name  = "server.additionalApplications[0].source.targetRevision"
+    #   value = "develop"
+    # },
+    # {
+    #   name  = "server.additionalApplications[0].source.path"
+    #   value = "bootstrap"
+    # },
+    # {
+    #   name  = "server.additionalApplications[0].destination.server"
+    #   value = "https://kubernetes.default.svc"
+    # },
+    # {
+    #   name  = "server.additionalApplications[0].destination.namespace"
+    #   value = kubernetes_namespace_v1.argocd_namespace.metadata[0].name
+    # },
+    # {
+    #   name  = "server.additionalApplications[0].syncPolicy.automated.prune"
+    #   value = "true"
+    # },
+    # {
+    #   name  = "server.additionalApplications[0].syncPolicy.automated.selfHeal"
+    #   value = "true"
+    # }
     # {
     #   name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/backend-protocol"
     #   value = "HTTP"

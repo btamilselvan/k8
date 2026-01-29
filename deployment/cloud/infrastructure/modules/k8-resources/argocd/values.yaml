@@ -1,4 +1,6 @@
 namespace: argocd
-alb_group_name: trocks-k8-shared-alb
+alb:
+  group_name: trocks-k8-shared-alb
+  certificate_arn: "placeholder-for-acm-certificate-arn"
 ingress:
   name: argocd-ingress

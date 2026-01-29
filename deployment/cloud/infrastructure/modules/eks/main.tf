@@ -183,7 +183,7 @@ module "eks" {
     system-node-group = {
       name                   = "system-node-group"
       ami_type               = "AL2023_x86_64_STANDARD"
-      ami_release_version    = "1.34.2-20260120" #optional - to pin to a specific AMI version
+      ami_release_version    = "1.35.0-20260120" #optional - to pin to a specific AMI version
       force_update_version   = false
       create_launch_template = true
       launch_template_name   = "system-node-group-template"
@@ -209,7 +209,7 @@ module "eks" {
     # app-node-group = {
     #   name                   = "app-node-group"
     #   ami_type               = "AL2023_x86_64_STANDARD"
-    #   ami_release_version    = "1.34.2-20260120" #optional - to pin to a specific AMI version
+    #   ami_release_version    = "1.35.0-20260120" #optional - to pin to a specific AMI version
     #   force_update_version   = false
     #   create_launch_template = true
     #   launch_template_name   = "app-node-group-template"
