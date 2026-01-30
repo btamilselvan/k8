@@ -111,35 +111,35 @@ module "eks" {
   create_node_security_group = true
   # node_security_group_id     = aws_security_group.node_sg.id
   # node_security_group_enable_recommended_rules = true
-  node_security_group_additional_rules = {
-    ingress_alb_http = {
-      description                     = "Allow HTTP from ALB"
-      protocol                        = "tcp"
-      from_port                       = 80
-      to_port                         = 80
-      type                            = "ingress"
-      source_security_group_id        = aws_security_group.alb_sg.id
-      source_security_group_rule_type = "referenced"
-    }
-    ingress_alb_https = {
-      description                     = "Allow HTTPS from ALB"
-      protocol                        = "tcp"
-      from_port                       = 443
-      to_port                         = 443
-      type                            = "ingress"
-      source_security_group_id        = aws_security_group.alb_sg.id
-      source_security_group_rule_type = "referenced"
-    }
-    ingress_alb_http_8080 = {
-      description                     = "Allow HTTP traffic from ALB in port 8080"
-      protocol                        = "tcp"
-      from_port                       = 8080
-      to_port                         = 8080
-      type                            = "ingress"
-      source_security_group_id        = aws_security_group.alb_sg.id
-      source_security_group_rule_type = "referenced"
-    }
-  }
+  # node_security_group_additional_rules = {
+  #   ingress_alb_http = {
+  #     description                     = "Allow HTTP from ALB"
+  #     protocol                        = "tcp"
+  #     from_port                       = 80
+  #     to_port                         = 80
+  #     type                            = "ingress"
+  #     source_security_group_id        = aws_security_group.alb_sg.id
+  #     source_security_group_rule_type = "referenced"
+  #   }
+  #   ingress_alb_https = {
+  #     description                     = "Allow HTTPS from ALB"
+  #     protocol                        = "tcp"
+  #     from_port                       = 443
+  #     to_port                         = 443
+  #     type                            = "ingress"
+  #     source_security_group_id        = aws_security_group.alb_sg.id
+  #     source_security_group_rule_type = "referenced"
+  #   }
+  #   ingress_alb_http_8080 = {
+  #     description                     = "Allow HTTP traffic from ALB in port 8080"
+  #     protocol                        = "tcp"
+  #     from_port                       = 8080
+  #     to_port                         = 8080
+  #     type                            = "ingress"
+  #     source_security_group_id        = aws_security_group.alb_sg.id
+  #     source_security_group_rule_type = "referenced"
+  #   }
+  # }
 
   # Step 3 - observability -
 
@@ -206,22 +206,22 @@ module "eks" {
         ignore_changes = ["ami_release_version", "release_version"]
       }
     }
-    # app-node-group = {
-    #   name                   = "app-node-group"
-    #   ami_type               = "AL2023_x86_64_STANDARD"
-    #   ami_release_version    = "1.35.0-20260120" #optional - to pin to a specific AMI version
-    #   force_update_version   = false
-    #   create_launch_template = true
-    #   launch_template_name   = "app-node-group-template"
-    #   instance_types         = ["t2.small"]
-    #   min_size               = 2
-    #   max_size               = 5
-    #   desired_size           = 3
-    #   labels = {
-    #     role = "app"
-    #     name = "app"
-    #   }
-    # }
+    app-node-group = {
+      name                   = "app-node-group"
+      ami_type               = "AL2023_x86_64_STANDARD"
+      ami_release_version    = "1.35.0-20260120" #optional - to pin to a specific AMI version
+      force_update_version   = false
+      create_launch_template = true
+      launch_template_name   = "app-node-group-template"
+      instance_types         = ["t2.small"]
+      min_size               = 2
+      max_size               = 5
+      desired_size           = 3
+      labels = {
+        role = "app"
+        name = "app"
+      }
+    }
   }
 
   access_entries = {
@@ -250,6 +250,6 @@ resource "aws_security_group_rule" "alb_egress_to_nodes" {
   from_port                = 8080
   to_port                  = 8080
   protocol                 = "tcp"
-  security_group_id        = aws_security_group.alb_sg.id  # The ALB SG
+  security_group_id        = aws_security_group.alb_sg.id      # The ALB SG
   source_security_group_id = module.eks.node_security_group_id # The EKS Node SG
 }

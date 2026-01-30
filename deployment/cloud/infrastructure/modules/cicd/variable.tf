@@ -10,5 +10,10 @@ locals {
       branch = "master"
       repo = "btamilselvan/k8"
     }
+    address-service = {
+      name = "address-service"
+      branch = "master"
+      repo = "btamilselvan/k8"
+    }
   }
 }

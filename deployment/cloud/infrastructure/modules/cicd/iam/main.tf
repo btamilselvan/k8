@@ -40,6 +40,12 @@ resource "aws_iam_role_policy" "codebuild_ssm_access" {
         Effect   = "Allow"
         Resource = ["arn:aws:ssm:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:parameter/CodeBuild/*"]
       },
+      {
+        # give secrets manager get access
+        Action   = ["secretsmanager:GetSecretValue"]
+        Effect   = "Allow"
+        Resource = ["arn:aws:secretsmanager:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:secret:*"]
+      }
     ]
   })
 }

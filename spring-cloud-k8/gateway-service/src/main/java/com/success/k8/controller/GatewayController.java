@@ -29,6 +29,15 @@ public class GatewayController {
         + this.toString();
   }
 
+  @GetMapping("/ping")
+  public String ping() {
+    log.info("health check endpoint called");
+    return "Gateway Service ping success! Current Time is "
+        + Instant.now()
+        + " Id : "
+        + this.toString();
+  }
+
   @GetMapping("/ucase")
   public String uppercase() {
     log.info("uppercase endpoint called");
