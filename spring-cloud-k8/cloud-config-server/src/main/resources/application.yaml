@@ -24,6 +24,7 @@ spring:
           - ${namespace:default}
       secrets:
         enabled: true
+        include-profile-specific-sources: true
   # config:
   #   activate.on-profile: kubernetes
   #   # activate.on-cloud-platform: kubernetes #automatic detection of kubernetes environment
