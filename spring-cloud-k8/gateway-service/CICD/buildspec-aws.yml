@@ -2,8 +2,8 @@ version: 0.2
 # buidspec used to build docker image and push to ECR
 env:
   secrets-manager:
-    DOCKERHUB_USERNAME: codebuild/gitops:username
-    DOCKERHUB_PASSWORD: codebuild/gitops:password
+    DOCKERHUB_USERNAME: codebuild/docker:username
+    DOCKERHUB_PASSWORD: codebuild/docker:password
     GITHUB_TOKEN: codebuild/gitops:pat
 phases:
   install:
