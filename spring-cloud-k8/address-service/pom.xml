@@ -27,10 +27,10 @@
         </dependency>
 
         <!--this is required to load config values from k8 configmap and secrets-->
-        <dependency>
+        <!-- <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-kubernetes-client-config</artifactId>
-        </dependency>
+        </dependency> -->
 
         <!-- the below two dependencies are required to enable the config-server retry -->
         <dependency>

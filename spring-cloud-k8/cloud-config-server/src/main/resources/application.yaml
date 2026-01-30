@@ -13,28 +13,38 @@ management:
 ---
 #kubernetes profile - to load properties from k8 configmap and secrets
 spring:
-  #config:.activate.on-profile: kubernetes
-  config:
-    activate.on-profile: kubernetes_native
-    # activate.on-cloud-platform: kubernetes #automatic detection of kubernetes environment
-    import: "optional:kubernetes:" # enable loading config from k8 configmaps and secrets
+  config.activate.on-profile: kubernetes_native | kubernetes
+  cloud:
     kubernetes:
       configserver:
         enabled: true
         config-map-namespaces:
-          - default
+          - ${namespace:default}
         secret-namespaces:
-          - default
-      config:
-        enabled: true
-        #name: person-service
-        namespace: default
-        # sources:
-        #   - name: cloud-config-server
+          - ${namespace:default}
       secrets:
         enabled: true
-        #name: cloud-config-server-secrets
-        namespace: default
+  # config:
+  #   activate.on-profile: kubernetes
+  #   # activate.on-cloud-platform: kubernetes #automatic detection of kubernetes environment
+  #   import: "optional:kubernetes:" # enable loading config from k8 configmaps and secrets
+  #   kubernetes:
+  #     configserver:
+  #       enabled: true
+  #       config-map-namespaces:
+  #         - ${namespace:default}
+  #       secret-namespaces:
+  #         - ${namespace:default}
+  #     config:
+  #       enabled: true
+  #       #name: person-service
+  #       namespace: ${namespace:default}
+  #       # sources:
+  #       #   - name: cloud-config-server
+  #     secrets:
+  #       enabled: true
+  #       #name: cloud-config-server-secrets
+  #       namespace: ${namespace:default}
         # sources:
         #   - name: cloud-config-server
 ---
