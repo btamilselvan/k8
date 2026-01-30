@@ -29,12 +29,14 @@ public class PersonController {
   @Value("${db.username:default-username}")
   private String dbUsername;
 
-  // works within the same namespace
-  private static final String K8_INTERNAL_SHORT_URL = "http://address-service:8080";
+  @Value("${namespace:default}")
+  private String namespace;
+
+  // works within the same namespace (Port 80. see service.yaml)
+  private static final String K8_INTERNAL_SHORT_URL = "http://address-service";
 
   // fully qualified domain name within the cluster (across namespaces)
-  private static final String K8_INTERNAL_FULL_URL =
-      "http://address-service.default.svc.cluster.local:8080";
+  private final String internalFullUrl = "http://address-service."+namespace+".svc.cluster.local";
 
   public PersonController(
       DiscoveryClient discoveryClient, AddressServiceClient addressServiceClient) {
@@ -127,7 +129,7 @@ public class PersonController {
   @Profile("kubernetes")
   @GetMapping("/address-service/k8/internal/full")
   public String getAddressServiceK8InternalFull() {
-    String url = K8_INTERNAL_FULL_URL + "/health";
+    String url = internalFullUrl + "/health";
     log.info("Calling address-service at URL: {}", url);
     String response = this.restClient.get().uri(url).retrieve().body(String.class);
     log.info("Response from address-service: {}", response);
