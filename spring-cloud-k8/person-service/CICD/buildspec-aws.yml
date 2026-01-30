@@ -1,13 +1,19 @@
 version: 0.2
 # buidspec used to build docker image and push to ECR
 env:
-  parameter-store:
-    DOCKERHUB_USERNAME: /CodeBuild/dockerUserName
-    DOCKERHUB_PASSWORD: /CodeBuild/dockerLoginPassword
+  secrets-manager:
+    DOCKERHUB_USERNAME: codebuild/docker:username
+    DOCKERHUB_PASSWORD: codebuild/docker:password
+    GITHUB_TOKEN: codebuild/gitops:pat
 phases:
   install:
     runtime-versions:
-        java: corretto21
+      java: corretto21
+    commands:
+      - echo "install ya command line utility..."
+      - wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+      - chmod +x /usr/bin/yq
+      - yq --version
   pre_build:
     commands:
         - aws --version
@@ -38,6 +44,20 @@ phases:
         - printf '[{"name":"person-service", "imageUri":"%s:%s"}]' $REPOSITORY_URI $IMAGE_TAG > imagedefinitions.json
         - echo "pushed to ecr successfully"
         - pwd
+        - echo "update the image tag in the GitOps repository"
+        - cd $CODEBUILD_SRC_DIR
+        - cd ..
+        ## Setup git identity
+        - git config --global user.email "codebuild@amazon.com"
+        - git config --global user.name "codebuild"
+        - echo "cloning the gitops repo"
+        - git clone https://x-token-auth:$GITHUB_TOKEN@github.com/btamilselvan/argocd-trocks-apps.git
+        - cd argocd-trocks-apps
+        # update the tag name
+        - yq -i ".image.tag = \"$IMAGE_TAG\"" apps/person-service/values.yaml
+        - git add apps/person-service/values.yaml
+        - git commit -m "chore(cd) - update person-service image tag to $IMAGE_TAG [skip ci]"
+        - git push origin develop
 artifacts:
   base-directory: spring-cloud-k8/person-service
   files:
