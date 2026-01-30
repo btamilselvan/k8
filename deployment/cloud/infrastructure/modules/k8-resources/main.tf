@@ -149,7 +149,7 @@ resource "helm_release" "alb_ingress" {
       value = local.ingress_name
     },
     {
-      name = "alb.certificate_arn"
+      name  = "alb.certificate_arn"
       value = aws_acm_certificate_validation.cert_validation.certificate_arn
     }
   ]
@@ -163,6 +163,54 @@ resource "helm_release" "argocd" {
   chart      = "argo-cd"
   namespace  = kubernetes_namespace_v1.argocd_namespace.metadata[0].name
   version    = "9.3.7"
+
+  # values = [
+  #   yamlencode({
+  #     server = {
+  #       replicas = 2
+  #       affinity = {
+  #         podAffinity = {
+  #           preferredDuringSchedulingIgnoredDuringExecution = [
+  #             {
+  #               weight = 100
+  #               podAffinityTerm = {
+  #                 labelSelector = {
+  #                   matchLabels = {
+  #                     app.kubernetes.io/name = "argocd-server"
+  #                   }
+  #                 }
+  #                 topologyKey = "kubernetes.io/hostname"
+  #               }
+  #             },
+  #             {
+  #               weight = 50
+  #               podAffinityTerm = {
+  #                 labelSelector = {
+  #                   matchLabels = {
+  #                     app.kubernetes.io/name = "argocd-server"
+  #                   }
+  #                 }
+  #                 topologyKey = "topology.kubernetes.io/zone"
+  #               }
+  #             }
+  #           ]
+  #         }
+  #       }
+  #     }
+  #     repoServer = {
+  #       replicas = 1
+  #     }
+  #   })
+  # ]
+  ## or - this automatically sets affinity as well
+  # values = [yamlencode({
+  #   global = {
+  #     ha = {
+  #       enabled = true
+  #     }
+  #   }
+  # })]
+
   # create_namespace = true
   # values = [
   #   templatefile("${path.module}/argocd-values.tftpl", {
