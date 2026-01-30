@@ -25,12 +25,13 @@
             <artifactId>spring-cloud-config-server</artifactId>
         </dependency>
 
-        <!-- this is required for k8 environment (this will enable config server to load from k8 config maps and secrets) -->
-        <!-- <dependency>
+        <!-- this is required for k8 environment (this will enable config server to load from k8
+        config maps and secrets) -->
+        <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-kubernetes-configserver</artifactId>
             <version>5.0.0</version>
-        </dependency> -->
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -39,6 +40,7 @@
     </dependencies>
 
     <build>
+        <finalName>${project.artifactId}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
