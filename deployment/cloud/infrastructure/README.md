@@ -144,6 +144,10 @@ backend "s3" {
 ### K8s Resources Module
 - **ALB Controller** - Helm chart for AWS Load Balancer Controller
 - **ArgoCD** - GitOps deployment with ingress configuration
+- **Karpenter** - Node autoscaling and provisioning
+  - IAM role for Karpenter-provisioned nodes
+  - Karpenter controller via Helm chart
+  - NodeClass and NodePool managed by ArgoCD
 - **Namespaces** - Organized resource separation
 - **SSL Certificates** - ACM certificate with DNS validation
 
@@ -181,6 +185,185 @@ backend "s3" {
 1. Deploy ALB Controller via Helm
 2. Install ArgoCD with ingress configuration
 3. Create namespaces and RBAC
+
+## Karpenter Auto-Scaling
+
+Karpenter provides intelligent, cost-effective node provisioning for your EKS cluster.
+
+### Components Created by Terraform
+
+**1. IAM Role for Karpenter Nodes**
+```hcl
+module "karpenter" {
+  source = "terraform-aws-modules/eks/aws//modules/karpenter"
+  
+  cluster_name = var.cluster_name
+  node_iam_role_name = "Karpenter-${var.cluster_name}"
+  
+  # Additional policies for node management
+  node_iam_role_additional_policies = {
+    AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  }
+}
+```
+
+**2. Karpenter Controller**
+```hcl
+resource "helm_release" "karpenter" {
+  name       = "karpenter"
+  repository = "oci://public.ecr.aws/karpenter"
+  chart      = "karpenter"
+  version    = "1.9.0"
+  namespace  = "kube-system"
+}
+```
+
+### NodeClass and NodePool Architecture
+
+Karpenter uses two key resources for node provisioning (created by ArgoCD):
+
+**EC2NodeClass** - Defines AWS infrastructure configuration:
+- AMI selection
+- Subnet configuration
+- Security groups
+- IAM instance profile
+- User data scripts
+
+**NodePool** - Defines scheduling and capacity requirements:
+- Instance types and sizes
+- Capacity limits
+- Taints and labels
+- Disruption policies
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Karpenter Workflow                       │
+│                                                             │
+│  ┌──────────────┐         ┌──────────────┐                │
+│  │   NodePool   │────────▶│ EC2NodeClass │                │
+│  │              │ refs    │              │                │
+│  │ - Capacity   │         │ - AMI        │                │
+│  │ - Taints     │         │ - Subnets    │                │
+│  │ - Labels     │         │ - Security   │                │
+│  │ - Limits     │         │ - IAM Role   │                │
+│  └──────────────┘         └──────────────┘                │
+│         │                                                  │
+│         ▼                                                  │
+│  ┌──────────────┐                                         │
+│  │  Provisions  │                                         │
+│  │  EC2 Nodes   │                                         │
+│  └──────────────┘                                         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Karpenter Management Commands
+
+**NodeClass Operations**
+```bash
+# List all NodeClasses
+kubectl get ec2nodeclass
+
+# Get specific NodeClass details
+kubectl get ec2nodeclass <nodeclass-name> -o yaml
+
+# Describe NodeClass
+kubectl describe ec2nodeclass <nodeclass-name>
+
+# View all NodeClasses with custom columns
+kubectl get ec2nodeclass -o custom-columns=NAME:.metadata.name,AMI:.spec.amiFamily,ROLE:.spec.role
+```
+
+**NodePool Operations**
+```bash
+# List all NodePools
+kubectl get nodepool
+
+# Get specific NodePool details
+kubectl get nodepool <nodepool-name> -o yaml
+
+# Describe NodePool configuration
+kubectl describe nodepool <nodepool-name>
+
+# View NodePool status
+kubectl get nodepool -o jsonpath='{.items[*].status}'
+```
+
+**NodeClaim Management** (Karpenter-managed nodes)
+```bash
+# List all NodeClaims (active node requests)
+kubectl get nodeclaim
+
+# Describe specific NodeClaim
+kubectl describe nodeclaim <nodeclaim-name>
+
+# View NodeClaim with detailed info
+kubectl get nodeclaim -o wide
+
+# Check NodeClaim conditions
+kubectl get nodeclaim -o jsonpath='{.items[*].status.conditions}'
+```
+
+**Node Information**
+```bash
+# List all Karpenter-provisioned nodes
+kubectl get nodes -l karpenter.sh/nodepool
+
+# List nodes by specific NodePool
+kubectl get nodes -l karpenter.sh/nodepool=<nodepool-name>
+
+# View node labels and taints
+kubectl describe node <node-name>
+
+# Check node capacity and allocatable resources
+kubectl get nodes -o custom-columns=NAME:.metadata.name,CPU:.status.capacity.cpu,MEMORY:.status.capacity.memory
+```
+
+**Monitoring Karpenter**
+```bash
+# View Karpenter controller logs
+kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter --tail=100 -f
+
+# Check Karpenter events
+kubectl get events -n kube-system --sort-by='.lastTimestamp' | grep -i karpenter
+
+# View Karpenter controller status
+kubectl get pods -n kube-system -l app.kubernetes.io/name=karpenter
+```
+
+**Troubleshooting**
+```bash
+# Check why nodes aren't provisioning
+kubectl describe nodepool <nodepool-name>
+kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter | grep -i error
+
+# Verify IAM role configuration
+kubectl get ec2nodeclass <nodeclass-name> -o jsonpath='{.spec.role}'
+
+# Check pending pods waiting for nodes
+kubectl get pods --all-namespaces --field-selector=status.phase=Pending
+
+# Force node consolidation (cost optimization)
+kubectl annotate nodepool <nodepool-name> karpenter.sh/do-not-disrupt=false
+```
+
+### Integration with Applications
+
+Applications can request Karpenter-provisioned nodes using node affinity:
+
+```yaml
+spec:
+  template:
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: karpenter.sh/nodepool
+                    operator: In
+                    values:
+                      - default
+```
 
 ## ArgoCD Integration
 

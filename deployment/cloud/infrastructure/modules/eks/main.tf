@@ -109,6 +109,11 @@ module "eks" {
   endpoint_private_access    = true
   endpoint_public_access     = true
   create_node_security_group = true
+
+  #this is required for karpenter to work
+  node_security_group_tags = {
+    "karpenter.sh/discovery" = var.cluster_name
+  }
   # node_security_group_id     = aws_security_group.node_sg.id
   # node_security_group_enable_recommended_rules = true
   # node_security_group_additional_rules = {
@@ -176,6 +181,21 @@ module "eks" {
       before_compute = true ## important - to ensure this is created before node groups
       # these pods should run on all nodes - and AWS adds tolerations by default
     }
+    metrics-server = {
+      configuration_values = jsonencode({
+        nodeSelector = {
+          "role" = "system"
+        }
+        tolerations = [
+          {
+            key      = "node-role.kubernetes.io/system"
+            operator = "Equal"
+            value    = "true"
+            effect   = "NoSchedule"
+          }
+        ]
+      })
+    }
   }
 
   # Node groups
@@ -206,20 +226,48 @@ module "eks" {
         ignore_changes = ["ami_release_version", "release_version"]
       }
     }
-    app-node-group = {
-      name                   = "app-node-group"
-      ami_type               = "AL2023_x86_64_STANDARD"
-      ami_release_version    = "1.35.0-20260120" #optional - to pin to a specific AMI version
+    # app-node-group = {
+    #   name                   = "app-node-group"
+    #   ami_type               = "AL2023_x86_64_STANDARD"
+    #   ami_release_version    = "1.35.0-20260120" #optional - to pin to a specific AMI version
+    #   force_update_version   = false
+    #   create_launch_template = true
+    #   launch_template_name   = "app-node-group-template"
+    #   instance_types         = ["t2.small"]
+    #   min_size               = 2
+    #   max_size               = 5
+    #   desired_size           = 3
+    #   labels = {
+    #     role = "app"
+    #     name = "app"
+    #   }
+    # }
+    karpenter = {
+      ami_type       = "AL2023_x86_64_STANDARD"
+      instance_types = ["t2.small"]
       force_update_version   = false
       create_launch_template = true
-      launch_template_name   = "app-node-group-template"
+      launch_template_name   = "karpenter-node-group-template"
       instance_types         = ["t2.small"]
       min_size               = 2
-      max_size               = 5
-      desired_size           = 3
+      max_size               = 3
+      desired_size           = 2
+
+      min_size     = 2
+      max_size     = 3
+      desired_size = 2
+
       labels = {
-        role = "app"
-        name = "app"
+        # Used to ensure Karpenter runs on nodes that it does not manage
+        "karpenter.sh/controller" = "true"
+        role = "karpenter"
+        name = "karpenter"
+      }
+      taints = { system = {
+        key    = "KarpenterNodsOnly"
+        value  = "true"
+        effect = "NO_SCHEDULE"
+        }
       }
     }
   }

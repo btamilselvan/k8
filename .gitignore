@@ -8,3 +8,5 @@ terraform/.terraform/
 terraform/.dev-keys.sh/
 terraform/.dev-keys.sh
 deployment/ingress-temp.yml
+deployment/cloud/infrastructure/.dev-keys.sh
+deployment/cloud/infrastructure/.terraform/

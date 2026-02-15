@@ -116,6 +116,9 @@ resource "helm_release" "aws_load_balancer_controller" {
         }
       }
       replicaCount = 2
+      nodeSelector = {
+        role = "system"
+      }
       tolerations = [
         {
           key      = "node-role.kubernetes.io/system"
@@ -398,6 +401,116 @@ data "kubernetes_secret_v1" "argocd_initial_admin_secret" {
 #       }
 #     }
 #   }
+# }
+
+## create the IAM role for the Nodes karpenter will create
+module "karpenter" {
+  source  = "terraform-aws-modules/eks/aws//modules/karpenter"
+  version = "~> 21.15.1"
+
+  cluster_name = var.cluster_name
+
+  node_iam_role_use_name_prefix = false
+  node_iam_role_name = "Karpenter-${var.cluster_name}"
+
+  # Attach additional IAM policies to the Karpenter node IAM role
+  node_iam_role_additional_policies = {
+    AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  }
+
+
+  tags = {
+    Terraform   = "true"
+    Environment = terraform.workspace
+  }
+}
+
+# data "aws_region" "current" {}
+
+data "aws_ecrpublic_authorization_token" "token" {
+  region = "us-east-1"
+}
+
+resource "helm_release" "karpenter" {
+  namespace           = "kube-system"
+  name                = "karpenter"
+  repository          = "oci://public.ecr.aws/karpenter"
+  repository_username = data.aws_ecrpublic_authorization_token.token.user_name
+  repository_password = data.aws_ecrpublic_authorization_token.token.password
+  chart               = "karpenter"
+  version             = "1.9.0"
+  wait                = false
+
+  # set = [{
+  #   name  = "nodeSelector.role"
+  #   value = "karpenter"
+  #   },
+  #   {
+  #     name  = "tolerations[0].key"
+  #     value = "KarpenterNodsOnly"
+  #   },
+  #   {
+  #     name  = "tolerations[0].operator"
+  #     value = "Equal"
+  #   },
+  #   {
+  #     name  = "tolerations[0].value"
+  #     value = "true"
+  #     type  = "string"
+  #   },
+  #   {
+  #     name  = "tolerations[0].effect"
+  #     value = "NoSchedule"
+  #   }
+  # ]
+
+  values = [
+    <<-EOT
+    serviceAccount:
+      annotations:
+        eks.amazonaws.com/role-arn: ${module.karpenter.iam_role_arn}
+    settings:
+      clusterName: ${var.cluster_name}
+      clusterEndpoint: ${var.cluster_endpoint}
+      interruptionQueue: ${module.karpenter.queue_name}
+    webhook:
+      enabled: false
+    
+    # add node selector and tolerations to run on system nodes only
+    nodeSelector:
+      role: karpenter
+    tolerations:
+      - key: KarpenterNodsOnly
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+    EOT
+  ]
+}
+
+# resource "helm_release" "karpenter" {
+#   namespace           = "kube-system"
+#   name                = "karpenter"
+#   repository          = "oci://public.ecr.aws/karpenter"
+#   repository_username = data.aws_ecrpublic_authorization_token.token.user_name
+#   repository_password = data.aws_ecrpublic_authorization_token.token.password
+#   chart               = "karpenter"
+#   version             = "1.9.0"
+#   wait                = false
+
+#   values = [
+#     <<-EOT
+#     nodeSelector:
+#       karpenter.sh/controller: 'true'
+#     dnsPolicy: Default
+#     settings:
+#       clusterName: ${var.cluster_name}
+#       clusterEndpoint: ${module.eks.cluster_endpoint}
+#       interruptionQueue: ${module.karpenter.queue_name}
+#     webhook:
+#       enabled: false
+#     EOT
+#   ]
 # }
 
 output "alb_dns" {

@@ -221,6 +221,39 @@ No node capacity
    ↓
 Cluster Autoscaler adds nodes
 
+### Requirement Components
+- Metrics server (minikube addons enable metrics-server) - the "source of truth" for the HPA
+- Horizontal Pod Autoscaler (HPA)
+- Karpenter or Cluster Autoscaler
+
+### HPA
+The HPA acts like a thermostat. You set a target (e.g., 60% CPU usage), and the HPA constantly checks the pods. If they exceed that target, it tells the Deployment to increase the replica count.
+
+- Define resources in deployment.yaml
+
+```
+resources:
+  requests: # The scheduler uses these values to decide which node your Pod should go on. (min gurantee)
+    cpu: "100m" # e.g. Kubernetes will find a node that has at least this much "unreserved" CPU.  100m = 10% of a CPU core
+    memory: "256Mi" # Kubernetes ensures the node has this much RAM available before placing the Pod.
+  limits: # This is the maximum amount of resources the Pod is allowed to consume. (Hard ceiling)
+    cpu: "500m" # e.g app can burst up to 50% of a CPU core.
+    memory: "512Mi" # max memory allowed to use.
+```
+- Enable HPA (see hpa.yaml)
+
+### Karpenter
+- an open-source project designed to enhance node lifecycle management within Kubernetes clusters. It automates provisioning and deprovisioning of nodes based on the specific scheduling needs of pods, allowing efficient scaling and cost optimization.
+
+#### Component
+- IAM role (for the Nodes karpenter will create).
+- Karpenter Controller (terrafom + helm template)
+- Node pool
+
+####
+- Subnets Tags (karpenter.sh/discovery: <cluster-name>)
+- Node security group tags (karpenter.sh/discovery)
+
 
 ### Rolling Updates (Zero downtime)
 Deployment Update Flow
@@ -682,6 +715,29 @@ This pod can run on nodes tainted with:
 
 - The toleration does NOT mean “system pods must run here.” It only means: “System pods are allowed to run here”
 
+### Affinity
+- Affinity is essentially "matchmaking" for our Pods. While a nodeSelector is a simple "must-have" label, Affinity gives us a rich language to define complex rules for where Pods should—or shouldn't—live.
+- three main categories: Node Affinity, Pod Affinity, and Pod Anti-Affinity.
+
+#### Node Affinity
+This is used to attract Pods to specific nodes based on node labels (like GPU types, instance types, or custom environment tags).
+
+#### Pod Affinity & Anti-Affinity
+This is about where Pods live relative to other Pods.
+
+| Attribute       | Purpose                   | Example                                   |
+|-----------------|---------------------------|-------------------------------------------|
+| nodeAffinity    | Pod-to-Node relationship  | "Only run on nodes with SSDs"             |
+| podAffinity     | Pod-to-Pod (Togetherness) | "Put my API pod next to my Cache pod"     |
+| podAntiAffinity | Pod-to-Pod (Separation)   | "Don't put two Gateway pods on one node"  |
+| topologyKey     | The scope of the rule     | kubernetes.io/hostname (Node)             |
+| operator        | The logic of the match    | In, NotIn, Exists                         |
+
+#### Scheduling Rules
+- ```requiredDuringSchedulingIgnoredDuringExecution``` (Hard Rule): The scheduler must find a node that meets the rule. If it can't, the Pod will stay in a Pending state.
+
+- ```preferredDuringSchedulingIgnoredDuringExecution``` (Soft Rule): The scheduler will try to find a matching node. If it can't, it will ignore the rule and schedule the Pod anyway so your service stays up.
+
 ### Cluster Auth Mode vs API Server access
 - Cluster authentication mode controls Who can authenticate (IAM → Kubernetes)
 - API server endpoint access controles From where the API server can be reached
@@ -727,6 +783,21 @@ ArgoCD is a declarative, GitOps continuous delivery tool for Kubernetes.
 3) Multi-Cluster Management.
 4) Support for Multiple Manifest Tools
 
+### Components
+| Component                     | Replicated in HA? | Reason                                        |
+|-------------------------------|-------------------|-----------------------------------------------|
+| argocd-server                 | Yes (Default 3)   | Handles UI/API/CLI traffic.                   |
+| argocd-repo-server            | Yes (Default 3)   | Handles Git cloning and manifest generation.  |
+| argocd-application-controller | Yes (Sharded)     | Handles the actual syncing to K8s.            |
+| Redis                         | Yes (Sentinel)    | Shared cache for all other components.        |
+
+- argocd-server - stateless - scales horizontally
+- repo-server - statless- scales horizontally
+- application-controller - stateful - uses sharding - talks to the K8 API server - usually 1 replica is good enough
+
+- see helm_release -> argocd resource under k8-resources to understand how to set replicas and affinity settings.
+
+
 ### How ArgoCD "Uses" Helm Internally
 
 When you point ArgoCD at a Helm chart, it goes through a three-step process:
@@ -746,6 +817,23 @@ GitOps is a modern operational framework that applies DevOps best practices (ver
 - Automated Sync: An agent (like Argo CD or Flux) runs in the cluster, continuously comparing the live state to the Git repo.
 - Convergence: When differences (drift) are detected, the agent automatically pulls changes from Git and applies them to the cluster, bringing it back to the desired state.
 
+## Security
+### IAM (The "who")
+- EKS Pod Identity - Use EKS Pod Identity to give the apps (app pods) an IAM role directly. This ensures the pod can only touch the specific AWS resources that it needs.
+- RBAC Least Privilege - Avoid giving cluster-admin to anyone. Use Namespace-scoped Roles for developers.
+- EKS Access Entries
+### Network Security (The "Where")
+- Private API Server - Ensure EKS API endpoint is Private.
+- Security Groups for Pods
+### Infra and Karpenter Security
+- Node IAM Role Hardening - Ensure the IAM role used by Karpenter nodes has the bare minimum permissions.
+- Encryption at Rest - Ensure EC2NodeClass specifies that all EBS volumes created by Karpenter are encrypted with a KMS Key.
+### Secret Management
+- External Secrets Operator - Use ESO to sync secrets from AWS Secrets Manager into Kubernetes Secrets.
+- KMS Encryption for etcd
+### Governance & GitOps (ArgoCD)
+- Project Isolation - Use ArgoCD Projects to restrict which Git repos can deploy to which namespaces.
+
 ## References
 - https://docs.aws.amazon.com/cli/latest/reference/eks/update-kubeconfig.html
 - https://github.com/terraform-aws-modules/terraform-aws-eks/blob/master/examples/eks-managed-node-group/eks-bottlerocket.tf
@@ -755,5 +843,206 @@ GitOps is a modern operational framework that applies DevOps best practices (ver
 - https://helm.sh/docs/topics/charts/
 - https://helm.sh/docs/chart_template_guide/values_files/
 - https://developer.hashicorp.com/terraform/tutorials/kubernetes/helm-provider?in=terraform%2Fkubernetes
+- https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/
+
+## Visualization
+
+![Alt text](visualization.png)
 
 
+## 🧱 Layered Kubernetes Architecture
+
+```mermaid
+flowchart TB
+
+%% =========================
+%% Layer 1 - Users
+%% =========================
+subgraph L1[🌐 External Layer]
+Client[Client / Browser]
+DNS[Route53 / DNS]
+end
+
+Client --> DNS
+
+%% =========================
+%% Layer 2 - Edge / Entry
+%% =========================
+subgraph L2[🚪 Edge Layer]
+ALB[Application Load Balancer]
+Ingress[Ingress Resource]
+ALBController[AWS Load Balancer Controller]
+end
+
+DNS --> ALB
+ALB --> Ingress
+Ingress --> ALBController
+
+%% =========================
+%% Layer 3 - Service Layer
+%% =========================
+subgraph L3[🔀 Service Layer]
+GatewaySvc[Gateway Service]
+PersonSvc[person-service]
+AddressSvc[address-service]
+end
+
+Ingress --> GatewaySvc
+GatewaySvc --> PersonSvc
+GatewaySvc --> AddressSvc
+
+%% =========================
+%% Layer 4 - Workload Layer
+%% =========================
+subgraph L4[📦 Workloads]
+GatewayPods[Gateway Pods]
+PersonPods[Person Pods]
+AddressPods[Address Pods]
+end
+
+GatewaySvc --> GatewayPods
+PersonSvc --> PersonPods
+AddressSvc --> AddressPods
+
+%% =========================
+%% Layer 5 - Scaling
+%% =========================
+subgraph L5[📈 Scaling Layer]
+HPA[Horizontal Pod Autoscaler]
+Karpenter[Karpenter Controller]
+end
+
+HPA --> PersonPods
+HPA --> AddressPods
+Karpenter --> Nodes
+
+%% =========================
+%% Layer 6 - Infrastructure
+%% =========================
+subgraph L6[☸ Infrastructure Layer]
+Nodes[Worker Nodes]
+EKS[EKS Control Plane]
+end
+
+Nodes --> GatewayPods
+Nodes --> PersonPods
+Nodes --> AddressPods
+EKS --> Nodes
+
+%% =========================
+%% GitOps
+%% =========================
+subgraph GitOps[🚀 GitOps Layer]
+Git[Git Repository]
+ArgoCD[ArgoCD Controller]
+Deployments[Deployments]
+end
+
+Git --> ArgoCD
+ArgoCD --> Deployments
+Deployments --> GatewayPods
+Deployments --> PersonPods
+Deployments --> AddressPods
+```
+
+## 🚀 Production-Grade EKS Reference Architecture
+
+```mermaid
+flowchart TB
+
+%% =========================
+%% Internet Layer
+%% =========================
+Users[Users / Clients]
+WAF[AWS WAF]
+Route53[Route53 DNS]
+
+Users --> Route53
+Route53 --> WAF
+
+%% =========================
+%% Public Subnets
+%% =========================
+subgraph PublicSubnets[🌍 Public Subnets]
+ALB[Application Load Balancer]
+end
+
+WAF --> ALB
+
+%% =========================
+%% Private Subnets - EKS
+%% =========================
+subgraph PrivateSubnets[🔒 Private Subnets - EKS Cluster]
+
+subgraph ControlPlane[EKS Control Plane]
+API[API Server]
+Scheduler[Scheduler]
+ControllerMgr[Controller Manager]
+end
+
+subgraph WorkerNodes[Worker Nodes]
+Node1[Node]
+Node2[Node]
+end
+
+subgraph SystemPods[System Components]
+CoreDNS[CoreDNS]
+KubeProxy[kube-proxy]
+VPCCNI[VPC CNI]
+PodIdentity[Pod Identity Agent]
+end
+
+subgraph AppPods[Application Layer]
+GatewayPods[Gateway Pods]
+PersonPods[Person Pods]
+AddressPods[Address Pods]
+end
+
+subgraph Autoscaling[Autoscaling]
+HPA[Horizontal Pod Autoscaler]
+Karpenter[Karpenter]
+NodePool[NodePool]
+NodeClass[NodeClass]
+end
+
+end
+
+%% Traffic Flow
+ALB --> GatewayPods
+GatewayPods --> PersonPods
+GatewayPods --> AddressPods
+
+%% Node relationships
+Node1 --> GatewayPods
+Node1 --> PersonPods
+Node2 --> AddressPods
+
+%% Control Plane
+API --> Scheduler
+Scheduler --> Node1
+Scheduler --> Node2
+ControllerMgr --> HPA
+
+%% Autoscaling Flow
+HPA --> PersonPods
+Karpenter --> NodePool
+NodePool --> NodeClass
+NodeClass --> WorkerNodes
+
+%% System Pods
+WorkerNodes --> CoreDNS
+WorkerNodes --> KubeProxy
+WorkerNodes --> VPCCNI
+WorkerNodes --> PodIdentity
+
+%% GitOps
+subgraph GitOpsLayer[GitOps]
+Git[Git Repository]
+ArgoCD[ArgoCD]
+end
+
+Git --> ArgoCD
+ArgoCD --> GatewayPods
+ArgoCD --> PersonPods
+ArgoCD --> AddressPods
+```

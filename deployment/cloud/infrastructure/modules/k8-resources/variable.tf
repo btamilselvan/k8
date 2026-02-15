@@ -2,6 +2,8 @@ variable "oidc_provider_arn" {
   description = "The ARN of the OIDC provider for the EKS cluster"
   type        = string
 }
+variable "cluster_endpoint" {
+}
 variable "cluster_name" {
 }
 variable "vpc_id" {

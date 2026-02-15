@@ -1,40 +1,277 @@
-# Spring Cloud Kubernetes Integration Demo
+# Production-Grade Kubernetes on AWS EKS
 
-A comprehensive demonstration of Spring Cloud capabilities with Kubernetes integration, showcasing microservices architecture, service discovery, configuration management, and API gateway patterns.
+A comprehensive reference implementation demonstrating production-grade Kubernetes deployment on AWS EKS with Spring Boot microservices, automated GitOps workflows, and infrastructure as code.
 
-## Project Overview
+## 📖 Documentation
+For a high-level overview, stay here. For technical deep dives, architecture diagrams, and advanced configuration, please see our [Detailed Documentation](./README-detail.md).
 
-This repository demonstrates enterprise-grade Spring Cloud features integrated with Kubernetes, including:
+## 🎯 Project Overview
 
-- **API Gateway** with Spring Cloud Gateway WebFlux
-- **Service Discovery** using Kubernetes native discovery
-- **Configuration Management** with Spring Cloud Config Server
-- **Inter-service Communication** using OpenFeign clients
-- **Multi-environment Support** (Local, Docker Compose, Kubernetes)
-- **Load Balancing** with Spring Cloud LoadBalancer
+This project showcases a complete end-to-end implementation of:
+- **Production-grade EKS cluster** with Terraform
+- **Spring Boot microservices** with service discovery and configuration management
+- **GitOps deployment** using ArgoCD
+- **Auto-scaling** with HPA and Karpenter
+- **Multi-environment support** (local, Docker, Kubernetes)
 
-## Architecture
+## 📁 Repository Structure
 
 ```
-┌─────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Ingress   │───▶│  Gateway Service │───▶│  Person Service │
-│  (NGINX)    │    │   (Port 8080)    │    │   (Port 8080)   │
-└─────────────┘    └──────────┬───────┘    └─────────┬───────┘
-                            │                      │
-                            ▼                      │
-                   ┌─────────────────┐             │
-                   │ Address Service │             │
-                   │   (Port 8080)   │             │
-                   └─────────┬───────┘             │
-                            │                      │
-                            ▼                      ▼
-                   ┌──────────────────┐    ┌──────────────────┐
-                   │ Config Server    │    | Address Service  │
-                   │   (Port 8888)    │    │   (Port 8080)    │
-                   └──────────────────┘    └──────────────────┘
+k8/
+├── spring-cloud-k8/              # Spring Boot microservices
+│   ├── gateway-service/          # API Gateway with routing
+│   ├── person-service/           # Demo service with Feign client
+│   ├── address-service/          # Downstream service
+│   └── cloud-config-server/      # Centralized configuration
+├── deployment/                   # Kubernetes deployment configurations
+│   ├── cloud/                    # Cloud-specific configs
+│   │   ├── infrastructure/       # Terraform IaC for EKS
+│   │   └── argocd/              # ArgoCD configurations
+│   ├── minikube/                # Local Kubernetes manifests
+│   └── helm/                    # Helm charts
+├── docker-files/                # Docker configurations
+└── api-testing/                 # API test scripts
 ```
 
-## Detailed Request Flow
+## 🏗️ Architecture
+
+### High-Level Architecture
+
+```
+Internet
+   ↓
+Route 53 (DNS)
+   ↓
+AWS WAF (Security)
+   ↓
+Application Load Balancer
+   ↓
+Kubernetes Ingress
+   ↓
+Spring Cloud Gateway
+   ↓
+Microservices (Person, Address, Config)
+   ↓
+AWS Services (RDS, ElastiCache, etc.)
+```
+
+### EKS Cluster Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    EKS Control Plane                    │
+│  (AWS-managed: API Server, Scheduler, etcd, Controllers)│
+└─────────────────────────────────────────────────────────┘
+                   ▲                      ▲
+                   │                      │
+        ┌──────────┘                      └───────────┐
+        │                                               │
+        ▼                                               ▼
+ ┌───────────────┐                           ┌────────────────┐
+ │  System Node  │                           │   App Node     │
+ │   Group       │                           │   Group(s)     │
+ │ (tainted)     │                           │ (untainted)    │
+ │---------------│                           │----------------│
+ │ CoreDNS       │                           │ gateway-service│
+ │ kube-proxy    │                           │ person-service │
+ │ VPC CNI       │                           │ address-service│
+ │ ALB Controller│                           │ config-server  │
+ │ MetricsServer │                           │ HA replicas    │
+ │ Karpenter     │                           │                │
+ └───────────────┘                           └────────────────┘
+```
+
+## 🚀 Key Features
+
+### Infrastructure (Terraform)
+- **EKS Cluster** with managed node groups
+- **VPC Configuration** with public/private subnets
+- **IAM Roles & Policies** with least privilege
+- **Karpenter** for intelligent node provisioning
+- **AWS Load Balancer Controller** for ingress
+- **EKS Pod Identity** for secure AWS access
+- **Private API endpoint** for enhanced security
+
+### Microservices (Spring Boot)
+- **Spring Cloud Gateway** - Reactive API gateway with routing and load balancing
+- **Service Discovery** - Kubernetes-native service discovery
+- **Configuration Management** - Centralized config with Spring Cloud Config
+- **Multi-Environment Support** - Local, Docker, and Kubernetes profiles
+- **Feign Clients** - Declarative HTTP clients for inter-service communication
+- **Health Checks** - Built-in health endpoints for monitoring
+
+### GitOps & Deployment
+- **ArgoCD** - Declarative GitOps continuous delivery
+- **App of Apps Pattern** - Hierarchical application management
+- **Automated Sync** - Self-healing and auto-sync policies
+- **Helm Charts** - Reusable templates for microservices
+- **CI/CD Integration** - Automated image tag updates
+
+### Auto-Scaling
+- **Horizontal Pod Autoscaler (HPA)** - Scales pods based on CPU/memory
+- **Karpenter** - Intelligent node provisioning and scaling
+- **NodePool & NodeClass** - Fine-grained node configuration
+- **PodDisruptionBudget** - Ensures availability during updates
+
+### Security
+- **IAM Roles for Service Accounts (IRSA)** - Fine-grained AWS permissions
+- **EKS Pod Identity** - Secure pod-to-AWS authentication
+- **RBAC** - Kubernetes role-based access control
+- **Private API Server** - Control plane in private network
+- **Secrets Management** - Kubernetes secrets and AWS Secrets Manager
+- **Network Policies** - Pod-to-pod communication control
+
+## 📚 Documentation
+
+### Core Documentation
+- **[Deployment Guide](deployment/README.md)** - Comprehensive EKS deployment guide with architecture details
+- **[Spring Cloud Microservices](spring-cloud-k8/README.md)** - Spring Boot microservices architecture and configuration
+- **[ArgoCD Setup](../argocd-trocks-apps/README.md)** - GitOps deployment with App of Apps pattern
+
+### Service Documentation
+- **[Gateway Service](spring-cloud-k8/gateway-service/README.md)** - API Gateway configuration and routing
+- **[Person Service](spring-cloud-k8/person-service/README.md)** - Service discovery and Feign client usage
+- **[Address Service](spring-cloud-k8/address-service/README.md)** - Config client with fail-fast and retry
+- **[Config Server](spring-cloud-k8/cloud-config-server/README.md)** - Centralized configuration management
+
+## 🛠️ Technology Stack
+
+### Infrastructure
+- **AWS EKS** - Managed Kubernetes service
+- **Terraform** - Infrastructure as Code
+- **Karpenter** - Kubernetes node autoscaler
+- **AWS Load Balancer Controller** - Ingress controller
+
+### Application
+- **Java 17** - Programming language
+- **Spring Boot 3.x** - Application framework
+- **Spring Cloud Gateway** - API Gateway
+- **Spring Cloud Kubernetes** - Service discovery
+- **Spring Cloud Config** - Configuration management
+- **Spring Cloud OpenFeign** - HTTP client
+
+### DevOps
+- **ArgoCD** - GitOps continuous delivery
+- **Helm** - Kubernetes package manager
+- **Docker** - Container runtime
+- **Maven** - Build tool
+
+### Monitoring & Observability
+- **Spring Boot Actuator** - Application metrics
+- **Kubernetes Metrics Server** - Resource metrics
+- **CloudWatch** - AWS monitoring (optional)
+
+## 🚦 Getting Started
+
+### Prerequisites
+- AWS Account with appropriate permissions
+- AWS CLI configured
+- kubectl installed
+- Terraform installed
+- Docker installed
+- Java 17 installed
+- Maven installed
+
+### Quick Start
+
+#### 1. Build Microservices
+```bash
+cd spring-cloud-k8
+mvn clean package -DskipTests
+```
+
+#### 2. Local Development
+```bash
+# Start services locally
+java -jar cloud-config-server/target/cloud-config-server-1.0-SNAPSHOT.jar --spring.profiles.active=local
+java -jar address-service/target/address-service-1.0-SNAPSHOT.jar --spring.profiles.active=local
+java -jar person-service/target/person-service-1.0-SNAPSHOT.jar --spring.profiles.active=local
+java -jar gateway-service/target/gateway-service-1.0-SNAPSHOT.jar --spring.profiles.active=local
+```
+
+#### 3. Docker Compose
+```bash
+cd spring-cloud-k8
+docker compose build
+docker compose up -d
+```
+
+#### 4. Deploy to EKS
+```bash
+# Deploy infrastructure with Terraform
+cd deployment/cloud/infrastructure
+terraform init
+terraform plan
+terraform apply
+
+# Deploy applications with ArgoCD
+# See argocd-trocks-apps repository for details
+```
+
+### Testing the Deployment
+
+```bash
+# Test gateway health
+curl http://localhost:8080/health
+
+# Test routed services
+curl http://localhost:8080/person/health
+curl http://localhost:8080/address/health
+curl http://localhost:8080/config/person-service/kubernetes
+```
+
+## 📖 Key Concepts Explained
+
+### EKS Control Plane
+The EKS control plane is AWS-managed and includes:
+- **API Server** - Front door for all cluster operations
+- **etcd** - Distributed key-value store for cluster state
+- **Scheduler** - Assigns pods to nodes
+- **Controller Manager** - Runs controllers for deployments, services, etc.
+
+**Important**: Worker nodes initiate connections to the control plane, not vice versa.
+
+### Service Discovery
+Three approaches demonstrated:
+1. **Kubernetes DNS** - `http://service-name:port` (L4 load balancing)
+2. **Spring Cloud LoadBalancer** - `lb://service-name` (L7 load balancing)
+3. **Direct URLs** - `http://service.namespace.svc.cluster.local:port`
+
+### Configuration Management
+Multiple backends supported:
+- **Local (Native)** - Filesystem-based for development
+- **Git** - Remote repository for version control
+- **Kubernetes** - ConfigMaps and Secrets for cloud-native
+
+### Auto-Scaling Flow
+```
+Traffic Increases
+   ↓
+HPA scales pods
+   ↓
+No node capacity
+   ↓
+Karpenter provisions new nodes
+   ↓
+Pods scheduled on new nodes
+```
+
+### GitOps Workflow
+```
+Code Change
+   ↓
+CI builds Docker image
+   ↓
+CI updates image tag in Git
+   ↓
+ArgoCD detects change
+   ↓
+ArgoCD syncs to cluster
+   ↓
+New version deployed
+```
+
+## 🔄 Detailed Request Flow
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -46,9 +283,9 @@ This repository demonstrates enterprise-grade Spring Cloud features integrated w
 │         │ HTTP Request                                                      │
 │         ▼                                                                  │
 │  ┌─────────────┐                                                           │
-│  │   Ingress   │ ◀── External LoadBalancer (NodePort/LoadBalancer)        │
+│  │   Ingress   │ ◀── External LoadBalancer (ALB/NLB)                      │
 │  │ Controller  │                                                           │
-│  │   (NGINX)   │                                                           │
+│  │   (AWS ALB) │                                                           │
 │  └──────┬──────┘                                                           │
 │         │ Routes based on path/host                                        │
 │         ▼                                                                  │
@@ -87,117 +324,67 @@ This repository demonstrates enterprise-grade Spring Cloud features integrated w
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Services
+## 🌐 Kubernetes DNS & Service Discovery
 
-### Gateway Service
-- **Spring Cloud Gateway WebFlux** for reactive routing
-- **Path-based routing** with rewrite filters
-- **Load balancing** using `lb://` URIs
-- **Function endpoints** (uppercase, concat)
-- **Health checks** and actuator endpoints
+### DNS Resolution in Kubernetes
 
-### Person Service
-- **OpenFeign client** for inter-service communication
-- **Circuit breaker** integration
-- **Service discovery** client
-- **REST API** endpoints
+Kubernetes provides automatic DNS resolution for services within the cluster:
 
-### Address Service
-- **Downstream microservice** with business logic
-- **Multiple replicas** for load balancing
-- **Health check** endpoints
-
-### Config Server
-- **Centralized configuration** management
-- **Multi-backend support** (Native, Git, Kubernetes)
-- **Profile-based** configuration
-- **Environment-specific** properties
-
-## Key Features
-
-### Service Discovery
-- **Kubernetes Native Discovery** - Auto-discovers services using labels
-- **Spring Cloud LoadBalancer** - Request-level load balancing
-- **Multi-environment URLs** - Different discovery mechanisms per environment
-
-### Configuration Management
-- **Spring Cloud Config Server** with multiple backends:
-  - **Native** - Local file-based configuration
-  - **Git** - Remote repository with versioning
-  - **Kubernetes** - ConfigMaps and Secrets integration
-
-### API Gateway Capabilities
-- **Reactive Routing** with WebFlux
-- **Path Rewriting** - Strips service prefixes
-- **Load Balancing** - Distributes requests across replicas
-- **Function Endpoints** - Serverless-style functions
-- **CORS Support** and security filters
-
-### Multi-Environment Support
-| Environment | Service Discovery | Configuration | Deployment |
-|-------------|------------------|---------------|------------|
-| **Local** | `localhost:port` | File-based | JAR execution |
-| **Docker** | Service names | Config server | Docker Compose |
-| **Kubernetes** | `lb://service` | ConfigMaps | K8s deployments |
-
-## Quick Start
-
-### Prerequisites
-- Java 21
-- Maven 3.8+
-- Docker & Docker Compose
-- Kubernetes cluster (Minikube/Kind)
-
-### Local Development
-```bash
-# Build all services
-mvn clean package -DskipTests
-
-# Start services in order
-java -jar cloud-config-server/target/cloud-config-server-1.0-SNAPSHOT.jar --spring.profiles.active=local
-java -jar address-service/target/address-service-1.0-SNAPSHOT.jar --spring.profiles.active=local
-java -jar person-service/target/person-service-1.0-SNAPSHOT.jar --spring.profiles.active=local
-java -jar gateway-service/target/gateway-service-1.0-SNAPSHOT.jar --spring.profiles.active=local
+#### DNS Naming Convention
+```
+<service-name>.<namespace>.svc.cluster.local
 ```
 
-### Docker Compose
-```bash
-cd spring-cloud-k8
-docker compose build
-docker compose up -d
-```
+#### Service DNS Examples
+| Service | Short Name | Full DNS Name |
+|---------|------------|---------------|
+| Gateway Service | `gateway-service` | `gateway-service.default.svc.cluster.local` |
+| Person Service | `person-service` | `person-service.default.svc.cluster.local` |
+| Address Service | `address-service` | `address-service.default.svc.cluster.local` |
+| Config Server | `cloud-config-server` | `cloud-config-server.default.svc.cluster.local` |
 
-### Kubernetes Deployment
-```bash
-# Build images for Minikube
-eval $(minikube docker-env)
-cd spring-cloud-k8
-docker compose build
+#### DNS Resolution Hierarchy
+1. **Same Namespace**: `service-name` (short name)
+2. **Cross Namespace**: `service-name.namespace`
+3. **Full FQDN**: `service-name.namespace.svc.cluster.local`
+4. **External**: External DNS resolution
 
-# Deploy to Kubernetes
-cd ../deployment
-kubectl apply -f .
-```
+### Load Balancing Strategy
 
-## Kubernetes Deployment Scripts
+#### Multiple Layers
+1. **Kubernetes Service** - L4 load balancing (kube-proxy)
+2. **Ingress Controller** - HTTP routing and SSL termination
+3. **Spring Cloud Gateway** - API routing and filters
+4. **Spring Cloud LoadBalancer** - Request-level distribution
 
-The `k8/deployment/` directory contains comprehensive Kubernetes manifests:
+#### Service URLs by Environment
+| Environment | URL Format | Example |
+|-------------|------------|---------|
+| Local | `http://localhost:port` | `http://localhost:8081` |
+| Docker | `http://service-name:port` | `http://person-service:8080` |
+| Kubernetes | `lb://service-name` | `lb://person-service` |
 
-### Core Deployment Files
+## 📦 Kubernetes Deployment
+
+### Deployment Files Structure
+
+The `deployment/` directory contains comprehensive Kubernetes manifests:
+
+#### Core Deployment Files
 - **`deployment.yml`** - Deployments for all services (gateway, person, address, config-server)
 - **`service.yml`** - Kubernetes Services for internal communication
-- **`ingress.yml`** - NGINX Ingress for external access
+- **`ingress.yml`** - Ingress for external access
 - **`access-control.yml`** - RBAC configuration (ServiceAccount, ClusterRole, ClusterRoleBinding)
 - **`secrets_configmap.yml`** - ConfigMaps and Secrets for configuration
 
-### Deployment Features
+#### Deployment Features
 - **Multi-replica deployments** - Gateway (2), Person (2), Address (2), Config (1)
-- **RBAC permissions** - ServiceAccount `gateway-trocks-account` for K8s API access
+- **RBAC permissions** - ServiceAccount for K8s API access
 - **Environment profiles** - `dev,kubernetes` for all services
 - **Service discovery labels** - Auto-discovery configuration
 - **Health checks** - Liveness and readiness probes
 - **Resource management** - CPU/memory limits and requests
-- **Auto-scaling** - Pods scale based on CPU/memory usage (configure in deployment.yml)
+- **Auto-scaling** - HPA configuration for pod scaling
 
 ### Port Configuration
 - **port** - Port exposed by Service (used inside cluster)
@@ -205,9 +392,9 @@ The `k8/deployment/` directory contains comprehensive Kubernetes manifests:
 - **nodePort** - Port exposed on all node IPs (external access for dev/testing)
 - **endpoints** - Real pod IPs/ports receiving traffic (set by Kubernetes automatically)
 
-### Traffic Flow
+### Traffic Flow Patterns
 
-**Direct NodePort Access:**
+**Direct NodePort Access (Development):**
 ```
 User (browser)
   ↓
@@ -222,7 +409,7 @@ Pod:8080 (TargetPort)
 ```
 Client
   ↓
-Ingress
+Ingress (ALB)
   ↓
 Gateway Service (80 → 8080)
   ↓
@@ -250,9 +437,9 @@ kubectl get pods,svc,ingress
 kubectl get endpoints
 ```
 
-## Useful Kubernetes Commands
+## 🛠️ Useful Commands
 
-### Minikube Management
+### Minikube Management (Local Development)
 ```bash
 minikube start                                    # Start Minikube cluster
 minikube tunnel                                   # Enable LoadBalancer access (required for Ingress)
@@ -260,10 +447,99 @@ minikube ssh                                      # SSH into Minikube environmen
 crictl images                                     # List container images (inside Minikube)
 minikube dashboard                                # Open Kubernetes dashboard
 minikube addons enable ingress                    # Enable NGINX Ingress controller
+minikube addons enable metrics-server             # Enable metrics for HPA
 minikube stop                                     # Stop Minikube cluster
 ```
 
-### Accessing Services via Ingress
+### Docker Environment (Minikube)
+```bash
+eval $(minikube docker-env)                       # Point Docker to Minikube's Docker engine
+eval $(minikube docker-env -u)                    # Revert to local Docker
+```
+
+**Important:** Docker images must be built within Minikube's Docker environment using `eval $(minikube docker-env)` before deployment. Otherwise, Kubernetes deployments will fail with "ImagePullBackOff" or "ErrImagePull" errors.
+
+### Namespace Operations
+```bash
+kubectl create namespace trocks-api              # Create namespace
+kubectl get namespaces                            # List all namespaces
+kubectl config set-context --current --namespace=trocks-api  # Set default namespace
+```
+
+### Deployment & Pod Management
+```bash
+kubectl get deployments                          # List deployments
+kubectl get pods                                 # List pods
+kubectl get pods -o wide                         # List pods with node info
+kubectl describe pod <pod_name>                  # Pod details
+kubectl get services                             # List services
+kubectl get endpoints                            # View service endpoints
+kubectl rollout restart deployment person-service # Restart deployment
+kubectl rollout status deployment person-service  # Check rollout status
+kubectl logs <pod_name>                          # View pod logs
+kubectl logs -f <pod_name>                       # Follow pod logs
+kubectl exec -it <pod_name> -- /bin/sh          # Shell into pod
+```
+
+### Secrets & ConfigMaps Management
+```bash
+kubectl apply -f secrets.yaml                    # Apply secrets from file
+kubectl create secret generic person-service --from-literal=username=user --from-literal=password=pass
+kubectl get secrets                              # List secrets
+kubectl describe secrets                         # Describe secrets
+kubectl get secrets person-service -o yaml       # View secret details
+kubectl get configmaps                           # List ConfigMaps
+kubectl describe configmap <name>                # ConfigMap details
+```
+
+### Service Testing & Debugging
+```bash
+kubectl port-forward service/gateway-service 8080:80  # Port forward to local
+kubectl exec -it <pod_name> -- curl http://service-name/health  # Test service connectivity
+kubectl get events --sort-by='.lastTimestamp'    # View recent events
+kubectl top pods                                 # View pod resource usage
+kubectl top nodes                                # View node resource usage
+```
+
+### Cleanup Operations
+```bash
+kubectl delete pods --all                        # Delete all pods (will recreate if managed)
+kubectl delete deployment person-service         # Delete deployment (stops recreation)
+kubectl delete -f deployment/                    # Delete all resources from manifests
+kubectl delete namespace trocks-api              # Delete namespace and all resources
+```
+
+### EKS-Specific Commands
+```bash
+# Update kubeconfig for EKS
+aws eks update-kubeconfig --name trocks-cluster --region us-east-2
+
+# Update kubeconfig with IAM role
+aws eks update-kubeconfig --name trocks-cluster --region us-east-2 --role-arn <role-arn>
+
+# List EKS clusters
+aws eks list-clusters --region us-east-2
+
+# Describe cluster
+aws eks describe-cluster --name trocks-cluster --region us-east-2
+```
+
+## 🧪 API Testing
+
+### Gateway Service Endpoints
+```bash
+# Gateway functions
+curl http://localhost:8080/health
+curl -X POST http://localhost:8080/concat1 -d "Hello World"
+curl http://localhost:8080/ucase
+
+# Routed requests
+curl http://localhost:8080/person/health
+curl http://localhost:8080/address/health
+curl http://localhost:8080/config/person-service/kubernetes
+```
+
+### Accessing Services via Ingress (Minikube)
 
 **Prerequisites:**
 1. Run `minikube tunnel` in a separate terminal (required for LoadBalancer access)
@@ -284,319 +560,188 @@ curl http://api.localhost/address/health
 curl http://api.localhost/config/person-service/kubernetes
 ```
 
-**Note:** `minikube tunnel` must be running to access Ingress endpoints. Without it, LoadBalancer services remain in "Pending" state.
-
-### Docker Environment
-```bash
-eval $(minikube docker-env)                       # Point Docker to Minikube's Docker engine
-eval $(minikube docker-env -u)                    # Revert to local Docker
+**Note:** `minikube tunnel` must be running to access Ingress endpoints. Without it, LoadBalancer services remain in "Pending" stateuilds Docker image
+   ↓
+CI updates image tag in Git
+   ↓
+ArgoCD detects change
+   ↓
+ArgoCD syncs to cluster
+   ↓
+New version deployed
 ```
 
-**Important:** Docker images must be built within Minikube's Docker environment using `eval $(minikube docker-env)` before deployment. Otherwise, Kubernetes deployments will fail with "ImagePullBackOff" or "ErrImagePull" errors since the images don't exist in Minikube's registry.
+## 🔐 Security Best Practices
 
-### Namespace Operations
-```bash
-kubectl create namespace trocks-api              # Create namespace
-kubectl get namespaces                            # List all namespaces
-```
+### IAM & Authentication
+- Use EKS Pod Identity for AWS service access
+- Implement least-privilege IAM policies
+- Use RBAC for Kubernetes access control
+- Map IAM roles to Kubernetes groups via access entries
 
-### Deployment & Pod Management
-```bash
-kubectl -n trocks-api get deployments            # List deployments
-kubectl -n trocks-api get pods                   # List pods
-kubectl -n trocks-api describe pod <pod_name>    # Pod details
-kubectl -n trocks-api get services               # List services
-kubectl rollout restart deployment person-service # Restart deployment
-kubectl logs <pod_name> -n trocks-api            # View pod logs
-```
+### Network Security
+- Private API server endpoint
+- Security groups for pods
+- Network policies for pod-to-pod communication
+- WAF for external traffic filtering
 
 ### Secrets Management
-```bash
-kubectl -n trocks-api apply -f secrets.yaml      # Apply secrets from file
-kubectl create secret generic person-service --from-literal=username=user --from-literal=password=pass
-kubectl -n trocks-api get secrets                # List secrets
-kubectl -n trocks-api describe secrets           # Describe secrets
-kubectl get secrets person-service -o yaml        # View secret details
-```
+- Use Kubernetes Secrets for sensitive data
+- Consider AWS Secrets Manager for external secrets
+- Enable encryption at rest for etcd
+- Never commit secrets to Git
 
-### Service Exposure & Testing
-```bash
-minikube service ordering-service -n trocks-api   # Test service locally
-kubectl expose deployment ordering-service --type=NodePort --port=8080  # Expose without service file
-```
+### Node Security
+- Taint system nodes to isolate workloads
+- Use separate node groups for system and app pods
+- Enable encryption for EBS volumes
+- Regular security patches and updates
 
-### Cleanup Operations
-```bash
-kubectl delete pods --all                         # Delete all pods (will recreate if managed)
-kubectl delete deployment person-service          # Delete deployment (stops recreation)
-```
-
-## API Endpoints
-
-### Gateway Service (Port 8080)
-- `GET /health` - Gateway health check
-- `POST /concat1` - String concatenation function
-- `GET /ucase` - Uppercase transformation function
-- `GET /actuator/**` - Management endpoints
-
-### Routed Services
-- `GET /person/**` - Routes to person-service
-- `GET /address/**` - Routes to address-service
-- `GET /config/**` - Routes to config-server
-
-### Example Requests
-```bash
-# Gateway functions
-curl http://localhost:8080/health
-curl -X POST http://localhost:8080/concat1 -d "Hello World"
-
-# Routed requests
-curl http://localhost:8080/person/health
-curl http://localhost:8080/address/health
-curl http://localhost:8080/config/person-service/kubernetes
-```
-
-## Configuration Profiles
-
-### Spring Profiles
-- **local** - Local development with localhost URLs
-- **docker** - Docker Compose with service names
-- **kubernetes** - K8s with service discovery
-- **dev/qa/prod** - Environment-specific configurations
-
-### Config Server Backends
-- **Native** - `spring.profiles.active=native`
-- **Git** - `spring.cloud.config.server.git.uri=...`
-- **Kubernetes** - `spring.cloud.kubernetes.config.enabled=true`
-
-## Kubernetes Integration
-
-### DNS Resolution in Kubernetes
-
-Kubernetes provides automatic DNS resolution for services within the cluster:
-
-#### DNS Naming Convention
-```
-<service-name>.<namespace>.svc.cluster.local
-```
-
-#### Service DNS Examples
-| Service | Short Name | Full DNS Name |
-|---------|------------|---------------|
-| Gateway Service | `gateway-service` | `gateway-service.default.svc.cluster.local` |
-| Person Service | `person-service` | `person-service.default.svc.cluster.local` |
-| Address Service | `address-service` | `address-service.default.svc.cluster.local` |
-| Config Server | `cloud-config-server` | `cloud-config-server.default.svc.cluster.local` |
-
-#### DNS Usage in Configuration Files
-
-**application.yaml (Spring Cloud Gateway):**
-```yaml
-spring:
-  cloud:
-    gateway:
-      routes:
-        - id: person-service
-          uri: lb://person-service          # Uses service discovery
-          predicates:
-            - Path=/person/**
-        - id: address-service
-          uri: lb://address-service         # Uses service discovery
-          predicates:
-            - Path=/address/**
-```
-
-**application.yaml (Person Service - Feign Client):**
-```yaml
-address-service:
-  url: http://address-service:80           # Direct DNS resolution
-
-# OR using Feign with service discovery
-@FeignClient(name = "address-service")     # Uses lb://address-service
-```
-
-**deployment.yaml (Environment Variables):**
-```yaml
-env:
-  - name: CONFIG_SERVER_URL
-    value: "http://cloud-config-server:80"  # DNS name reference
-  - name: SPRING_PROFILES_ACTIVE
-    value: "dev,kubernetes"
-```
-
-**service.yaml (Service Definition):**
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: gateway-service                    # Creates DNS entry
-spec:
-  selector:
-    app: gateway-service
-  ports:
-    - port: 80                             # Service port
-      targetPort: 8080                     # Container port
-```
-
-#### DNS Resolution Hierarchy
-1. **Same Namespace**: `service-name` (short name)
-2. **Cross Namespace**: `service-name.namespace`
-3. **Full FQDN**: `service-name.namespace.svc.cluster.local`
-4. **External**: External DNS resolution
-
-### Service Discovery
-```yaml
-# Automatic service discovery with labels
-metadata:
-  labels:
-    discovery-enabled: "true"
-```
-
-### RBAC Configuration
-```yaml
-# ServiceAccount for accessing K8s API
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: gateway-trocks-account
-```
-
-### Ingress Configuration
-```yaml
-# NGINX Ingress for external access
-spec:
-  ingressClassName: nginx
-  rules:
-    - http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: gateway-service
-                port:
-                  number: 80
-```
-
-## Load Balancing Strategy
-
-### Multiple Layers
-1. **Kubernetes Service** - L4 load balancing (kube-proxy)
-2. **Ingress Controller** - HTTP routing and SSL termination
-3. **Spring Cloud Gateway** - API routing and filters
-4. **Spring Cloud LoadBalancer** - Request-level distribution
-
-### Service URLs by Environment
-| Environment | URL Format | Example |
-|-------------|------------|---------|
-| Local | `http://localhost:port` | `http://localhost:8081` |
-| Docker | `http://service-name:port` | `http://person-service:8080` |
-| Kubernetes | `lb://service-name` | `lb://person-service` |
-
-## Monitoring & Management
+## 📊 Monitoring & Operations
 
 ### Health Checks
-- **Liveness probes** for container health
-- **Readiness probes** for traffic routing
-- **Custom health indicators** per service
+All services expose health endpoints:
+- Gateway: `http://gateway:8080/health`
+- Person: `http://person-service:8080/health`
+- Address: `http://address-service:8080/health`
+- Config: `http://cloud-config-server:8888/actuator/health`
 
-### Actuator Endpoints
-- `/actuator/health` - Service health status
-- `/actuator/info` - Application information
-- `/actuator/metrics` - Performance metrics
-- `/actuator/env` - Environment properties
-
-## Development Workflow
-
-### Building Services
+### Useful kubectl Commands
 ```bash
-# Build specific service
-mvn clean package -pl gateway-service -am -DskipTests
+# View all resources
+kubectl get all -n default
 
-# Build all services
-mvn clean package -DskipTests
-```
-
-### Testing
-```bash
-# Run tests
-mvn test
-
-# Integration tests
-mvn verify -Pintegration-tests
-```
-
-### Docker Images
-```bash
-# Build images
-docker compose build
-
-# Push to registry
-docker tag gateway-service:latest your-registry/gateway-service:v1.0
-docker push your-registry/gateway-service:v1.0
-```
-
-## Key Dependencies
-
-### Gateway Service
-- `spring-cloud-starter-gateway-server-webflux`
-- `spring-cloud-starter-kubernetes-client`
-- `spring-cloud-starter-loadbalancer`
-- `spring-boot-starter-actuator`
-
-### Person Service
-- `spring-cloud-starter-openfeign`
-- `spring-cloud-starter-kubernetes-client`
-- `spring-boot-starter-web`
-
-### Config Server
-- `spring-cloud-config-server`
-- `spring-cloud-starter-kubernetes-config`
-
-## Best Practices Demonstrated
-
-### Configuration Management
-- **Externalized configuration** using Config Server
-- **Environment-specific profiles** for different deployments
-- **Secrets management** with Kubernetes Secrets
-
-### Service Communication
-- **Declarative REST clients** with OpenFeign
-- **Circuit breaker patterns** for resilience
-- **Load balancing** across service instances
-
-### Kubernetes Integration
-- **Native service discovery** without external dependencies
-- **RBAC permissions** for secure API access
-- **Health checks** for proper lifecycle management
-
-### Observability
-- **Structured logging** with correlation IDs
-- **Metrics collection** via Actuator
-- **Health monitoring** at multiple levels
-
-## Troubleshooting
-
-### Common Issues
-1. **Service Discovery** - Ensure proper RBAC permissions
-2. **Config Server** - Verify profile activation and backend configuration
-3. **Load Balancing** - Check service labels and discovery settings
-4. **Ingress** - Validate ingress controller and DNS resolution
-
-### Debug Commands
-```bash
-# Check service discovery
-kubectl get endpoints
-
-# View service logs
+# Check pod logs
 kubectl logs -f deployment/gateway-service
 
-# Test service connectivity
-kubectl exec -it pod-name -- curl http://service-name/health
+# Describe pod for troubleshooting
+kubectl describe pod <pod-name>
+
+# Check HPA status
+kubectl get hpa
+
+# View Karpenter nodes
+kubectl get nodeclaim
+kubectl get nodepool
 ```
 
-## References
-- [Spring Cloud Gateway](https://docs.spring.io/spring-cloud-gateway/docs/current/reference/html/)
-- [Spring Cloud Kubernetes](https://docs.spring.io/spring-cloud-kubernetes/docs/current/reference/html/)
-- [Spring Cloud Config](https://docs.spring.io/spring-cloud-config/docs/current/reference/html/)
-- [Spring Cloud OpenFeign](https://docs.spring.io/spring-cloud-openfeign/docs/current/reference/html/)
+### ArgoCD Management
+```bash
+# Login to ArgoCD
+argocd login <alb-endpoint> --grpc-web --username admin
+
+# List applications
+argocd app list --grpc-web
+
+# Sync application
+argocd app sync gateway-service --grpc-web
+
+# View application details
+argocd app get gateway-service --grpc-web
+```
+
+## 🎓 Learning Resources
+
+### Kubernetes Fundamentals
+- Control plane components and their roles
+- Pod lifecycle and scheduling
+- Services and networking
+- ConfigMaps and Secrets
+- RBAC and security
+
+### EKS-Specific
+- Managed vs self-managed node groups
+- EKS Pod Identity
+- AWS Load Balancer Controller
+- VPC CNI networking
+- Karpenter node provisioning
+
+### Spring Cloud
+- Service discovery patterns
+- API Gateway routing
+- Configuration management
+- Feign clients
+- Load balancing strategies
+
+### GitOps
+- Declarative infrastructure
+- Git as single source of truth
+- ArgoCD App of Apps pattern
+- Automated sync and self-healing
+- Helm chart management
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**Pods not scheduling**
+- Check node capacity: `kubectl describe nodes`
+- Verify taints and tolerations
+- Check resource requests/limits
+
+**Service discovery failing**
+- Verify service labels match discovery config
+- Check RBAC permissions
+- Ensure services are in correct namespace
+
+**Configuration not loading**
+- Verify Config Server is running
+- Check fail-fast and retry settings
+- Validate profile activation
+
+**Karpenter not provisioning nodes**
+- Check NodePool and NodeClass configuration
+- Verify IAM permissions
+- Review Karpenter logs: `kubectl logs -n karpenter -l app.kubernetes.io/name=karpenter`
+
+## 🤝 Contributing
+
+This is a reference implementation for learning purposes. Feel free to:
+- Fork and experiment
+- Adapt for your use cases
+- Share improvements and feedback
+
+## 📝 Notes
+
+### Important Considerations
+- **etcd** stores all cluster state - protect it carefully
+- **Kubernetes is eventually consistent** - not continuously dependent
+- **Control plane never initiates connections** to worker nodes
+- **Taints and tolerations** are key to workload isolation
+- **Always use PodDisruptionBudgets** for production workloads
+
+### Best Practices
+- Never run production services with 1 replica
+- Use separate node groups for system and application pods
+- Implement proper RBAC policies
+- Enable encryption at rest and in transit
+- Use GitOps for all deployments
+- Monitor resource usage and set appropriate limits
+
+## 📚 References
+
+### AWS Documentation
+- [Amazon EKS User Guide](https://docs.aws.amazon.com/eks/)
+- [AWS Load Balancer Controller](https://kubernetes-sigs.github.io/aws-load-balancer-controller/)
+- [Karpenter Documentation](https://karpenter.sh/)
+
+### Kubernetes
+- [Kubernetes Documentation](https://kubernetes.io/docs/)
+- [Kubernetes Best Practices](https://kubernetes.io/docs/concepts/configuration/overview/)
+
+### Spring Cloud
+- [Spring Cloud Kubernetes](https://cloud.spring.io/spring-cloud-kubernetes/)
+- [Spring Cloud Gateway](https://docs.spring.io/spring-cloud-gateway/)
+- [Spring Cloud Config](https://docs.spring.io/spring-cloud-config/)
+
+### GitOps
+- [ArgoCD Documentation](https://argo-cd.readthedocs.io/)
+- [Helm Documentation](https://helm.sh/docs/)
+
+## 📄 License
+
+This project is for educational and reference purposes.
+
+---
+
+**Built with ❤️ for learning Kubernetes, EKS, and Cloud-Native architectures**
