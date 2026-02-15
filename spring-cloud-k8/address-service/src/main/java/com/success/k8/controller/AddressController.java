@@ -18,6 +18,9 @@ public class AddressController {
     @Value("${trocks.apiKey}")
     private String apiKey;
 
+    @Value("${hello.world: default world}")
+    private String ssmParam;
+
     @GetMapping("/health")
     public String healthCheck(){
         return "Address Service is healthy. Now is " + Instant.now() + " Id : " + this.toString();
@@ -27,5 +30,11 @@ public class AddressController {
     public String getConfig(){
         log.info("apiKey {}", apiKey);
         return "config "+helloMessage + " secret "+ apiKey;
+    }
+
+    @GetMapping("/ssm")
+    public String getSSMParam(){
+        log.info("return ssm param");
+        return "SSM Param is "+ ssmParam;
     }
 }
