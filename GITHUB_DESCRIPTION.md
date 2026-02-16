@@ -1,9 +1,6 @@
 # GitHub Repository Description
 
-## Short Description (160 characters max)
-Production-grade Kubernetes on AWS EKS with Spring Boot microservices, Terraform IaC, GitOps deployment, and automated CI/CD pipelines.
-
-## About Section (350 characters max)
+## About
 Complete end-to-end implementation of production-grade Kubernetes on AWS EKS featuring Spring Cloud microservices, Terraform infrastructure automation, ArgoCD GitOps workflows, AWS CodeBuild CI/CD pipelines, Karpenter auto-scaling, and multi-environment support (local/Docker/K8s). Includes comprehensive documentation and best practices.
 
 ## Topics/Tags
@@ -27,8 +24,6 @@ Complete end-to-end implementation of production-grade Kubernetes on AWS EKS fea
 - spring-cloud-gateway
 - eks-pod-identity
 - production-ready
-
-## Full Description (for README.md top section)
 
 # Production-Grade Kubernetes on AWS EKS
 
