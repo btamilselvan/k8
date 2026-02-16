@@ -163,6 +163,25 @@ docker build -t config-server --build-arg MODULE_NAME=cloud-config-server .
 2. Deploy with appropriate profile: `kubernetes_native` or `kubernetes_git`
 3. Configure service discovery for other microservices
 
+## CI/CD Pipeline
+
+### AWS CodeBuild Integration
+
+The service includes `CICD/buildspec-aws.yml` for automated deployment.
+
+**Pipeline Steps:**
+1. Maven build: `mvn clean package -pl cloud-config-server -am -DskipTests`
+2. Docker build and push to ECR with Git commit hash tag
+3. Update image tag in ArgoCD repository using GitHub Personal Access Token
+4. ArgoCD auto-syncs and deploys to Kubernetes
+
+**Required Secrets (AWS Secrets Manager):**
+- `codebuild/docker:username` - DockerHub username
+- `codebuild/docker:password` - DockerHub password
+- `codebuild/gitops:pat` - GitHub Personal Access Token with `repo` scope
+
+**GitOps Repository**: `https://github.com/btamilselvan/argocd-trocks-apps.git`
+
 ## Monitoring
 
 Actuator endpoints are enabled for monitoring:

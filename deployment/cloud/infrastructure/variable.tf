@@ -3,6 +3,8 @@ variable "platform_iam_user_arn" {
 }
 variable "cluster_name" {
 }
+variable "pod_service_account" {
+}
 
 variable "network_cidr" {
   description = "The CIDR block for the network"

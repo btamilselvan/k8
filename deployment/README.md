@@ -686,6 +686,39 @@ These pods are created by:
 
 👉 They are created ONLY AFTER nodes exist
 
+### System Pods
+#### eks-pod-identity-agent
+- ```DaemonSet``` - one pod per Node.
+- local ```security guard``` living on the server, co-ordinates applictions running on the pods to talk to AWS services.
+- Pods cannot assume IAM roles without pod-identity-agent.
+- AWS SDK -> Pod ID Agent -> EKS Auth API -> Get temporary, short-lived creds.
+
+##### How to give pod access to AWS resource (e.g. SSM parameter store access)
+1) Create an IAM role with necessary permissions needed for the applications running in the pods (IAM role for Pods).
+2) Create an IAM role with AmazonEKSWorkerNodePolicy (eks-auth:AssumeRoleForPodIdentity). This role will be attached to the nodes. This allows nodes the authority to ask AWS for credentials on behalf of the pods. This role will be created automatically during cluster creation. The default role will have additional permissions as well (e.g permissions to pull images from ECR). 
+3) Create a k8 service account and attach the service account to pods via deployment.yaml.
+4) Link the service account with IAM role (Pod IAM role) using aws_eks_pod_identity_association resource.
+
+- Service account will be created by argoCD but pod identity association can happen before the service account creatio (when the service account is not available yet).
+
+- The role and role-to-service-account association using pod-identity-association can be done using "eks-pod-identity" module.
+
+#### vpc-cni
+- ```DaemonSet``` - one pod per Node.
+
+#### kube-proxy
+ - ```DaemonSet``` - one pod per Node.
+
+#### kube-system pods
+| Pod Name (Prefix)  | Type       | What it does                                                                                      |
+|--------------------|------------|---------------------------------------------------------------------------------------------------|
+| aws-node-xxxxx     | DaemonSet  | VPC CNI Plugin: Assigns actual AWS VPC IP addresses to your pods.                                 |
+| kube-proxy-xxxxx   | DaemonSet  | Networking: Manages the network rules (IPtables/IPVS) that allow services to talk to each other.  |
+| ebs-csi-node-xxxxx | DaemonSet  | Storage: Allows your pods to mount Amazon EBS volumes.                                            |
+| karpenter-xxxxx    | Deployment | Autoscaling: Only runs on a few nodes (not all) to manage cluster scaling.                        |
+| coredns-xxxxx      | Deployment | DNS: Usually runs 2-3 replicas across the cluster, not on every node.                             |
+
+
 ### Taints
 - A taint is a “KEEP OUT” sign placed on a node.
 - It tells Kubernetes: “Do not schedule pods here unless the pod explicitly allows (tolerates) it.”

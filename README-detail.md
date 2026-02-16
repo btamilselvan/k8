@@ -308,6 +308,7 @@ kubectl -n trocks-api describe pod <pod_name>    # Pod details
 kubectl -n trocks-api get services               # List services
 kubectl rollout restart deployment person-service # Restart deployment
 kubectl logs <pod_name> -n trocks-api            # View pod logs
+kubectl describe hpa gateway-service -n terraform-trocks-namespace # View HPA details
 ```
 
 ### Secrets Management

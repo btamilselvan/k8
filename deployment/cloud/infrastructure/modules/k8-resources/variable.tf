@@ -6,6 +6,8 @@ variable "cluster_endpoint" {
 }
 variable "cluster_name" {
 }
+variable "pod_service_account" {
+}
 variable "vpc_id" {
   description = "The VPC ID for the EKS cluster"
   type        = string

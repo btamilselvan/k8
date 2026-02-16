@@ -127,6 +127,7 @@ module "k8_resources" {
   argocd_ui_password_modified_at = var.argocd_ui_password_modified_at
   trocks_domain_name = var.trocks_domain_name
   cluster_endpoint = "${module.eks.cluster_endpoint}"
+  pod_service_account = var.pod_service_account
 }
 ## cicd module
 module "cicd" {

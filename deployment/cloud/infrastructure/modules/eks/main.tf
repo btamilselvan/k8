@@ -243,8 +243,8 @@ module "eks" {
     #   }
     # }
     karpenter = {
-      ami_type       = "AL2023_x86_64_STANDARD"
-      instance_types = ["t2.small"]
+      ami_type               = "AL2023_x86_64_STANDARD"
+      instance_types         = ["t2.small"]
       force_update_version   = false
       create_launch_template = true
       launch_template_name   = "karpenter-node-group-template"
@@ -260,8 +260,8 @@ module "eks" {
       labels = {
         # Used to ensure Karpenter runs on nodes that it does not manage
         "karpenter.sh/controller" = "true"
-        role = "karpenter"
-        name = "karpenter"
+        role                      = "karpenter"
+        name                      = "karpenter"
       }
       taints = { system = {
         key    = "KarpenterNodsOnly"

@@ -32,6 +32,68 @@ A comprehensive demonstration of Spring Cloud Gateway with multi-environment sup
 - **Health Check** - Custom health endpoint at `/health`
 - **Actuator Integration** - Management endpoints for monitoring
 
+## CI/CD Pipeline
+
+### AWS CodeBuild Integration
+
+Each service includes a `CICD/buildspec-aws.yml` file for automated build and deployment using AWS CodeBuild.
+
+**Pipeline Flow:**
+1. **Build**: Compiles Java code and creates Docker image
+2. **Push**: Pushes image to Amazon ECR with Git commit hash as tag
+3. **GitOps Update**: Automatically updates image tag in ArgoCD repository
+4. **Deploy**: ArgoCD detects change and deploys to Kubernetes
+
+**Key Features:**
+- **Automated Tagging**: Uses 7-character Git commit hash as image tag
+- **ECR Integration**: Pushes images to AWS Elastic Container Registry
+- **GitOps Workflow**: Updates `argocd-trocks-apps` repository automatically
+- **Secrets Management**: Uses AWS Secrets Manager for credentials
+
+### Required Secrets (AWS Secrets Manager)
+
+```yaml
+codebuild/docker:
+  username: <dockerhub_username>
+  password: <dockerhub_password>
+
+codebuild/gitops:
+  pat: <github_personal_access_token>
+```
+
+**GitHub Personal Access Token Requirements:**
+- **Scope**: `repo` (full control of private repositories)
+- **Purpose**: Allows CodeBuild to clone and push to `argocd-trocks-apps` repository
+- **Format**: `ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
+- **Usage**: Authenticates as `https://x-token-auth:$GITHUB_TOKEN@github.com/...`
+
+### buildspec-aws.yml Structure
+
+Each service's buildspec includes:
+
+```yaml
+phases:
+  install:    # Install yq for YAML manipulation
+  pre_build:  # ECR/DockerHub login, generate image tag
+  build:      # Maven build, Docker build and tag
+  post_build: # Push to ECR, update GitOps repo
+```
+
+**GitOps Update Process:**
+```bash
+# Clone ArgoCD repository
+git clone https://x-token-auth:$GITHUB_TOKEN@github.com/btamilselvan/argocd-trocks-apps.git
+
+# Update image tag using yq
+yq -i ".image.tag = \"$IMAGE_TAG\"" apps/<service-name>/values.yaml
+
+# Commit and push
+git commit -m "chore(cd) - update <service> image tag to $IMAGE_TAG [skip ci]"
+git push origin develop
+```
+
+**Note**: The `[skip ci]` suffix prevents triggering CI builds in the ArgoCD repository.
+
 ## Build & Run
 
 ### Maven Build

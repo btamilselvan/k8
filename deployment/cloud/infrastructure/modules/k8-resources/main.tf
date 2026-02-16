@@ -48,6 +48,91 @@ resource "kubernetes_namespace_v1" "argocd_namespace" {
   }
 }
 
+## create IAM role used by Pods. this role trusts EKS Pod Identity service.
+## the role will have ssm get parameter permssions for now. 
+#use the below 4 steps or use app_pod_identity module below
+# Step 1
+# data "aws_iam_policy_document" "pod_identity_trust_policy" {
+#   statement {
+#     effect  = "Allow"
+#     actions = ["sts:AssumeRole", "sts:TagSession"]
+#     principals {
+#       type        = "Service"
+#       identifiers = ["pods.eks.amazonaws.com"]
+#     }
+#   }
+# }
+
+# #Step 2
+# resource "aws_iam_role" "pod_role" {
+#   name_prefix = "trocks-pod-role-${var.cluster_name}"
+#   assume_role_policy = data.aws_iam_policy_document.pod_identity_trust_policy.json
+
+#   tags = {
+#     Environment = terraform.workspace
+#     Terraform   = "true"
+#   }
+# }
+# #Step 3 - add required permissions to the role
+# resource "aws_iam_role_policy_attachment" "pod_role_ssm_get_parameter" {
+#   role       = aws_iam_role.pod_role.name
+#   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
+# }
+
+# #step 4 - link role to k8 service account using pod-identity-association
+# resource "aws_eks_pod_identity_association" "pod_role_association" {
+#   cluster_name    = var.cluster_name
+#   namespace       =  kubernetes_namespace_v1.trocks_namespace.metadata[0].name
+#   service_account = var.pod_service_account
+
+#   role_arn = aws_iam_role.pod_role.arn
+
+#   tags = {
+#     Environment = terraform.workspace
+#     Terraform   = "true"
+#   }
+# }
+
+## either use above 4 steps or just this module
+module "app_pod_identity" {
+  source = "terraform-aws-modules/eks-pod-identity/aws"
+
+  name = "trocks-pod-${var.cluster_name}"
+  use_name_prefix = true
+
+  additional_policy_arns = {
+    SSM_READ_ONLY_ACCESS = "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
+  }
+
+  attach_custom_policy = true
+
+  policy_statements = [
+    {
+      sid = "s3access"
+      effect = "Allow"
+      actions = [
+        "s3:GetObject",
+        "s3:ListBucket",
+      ]
+      resources = ["*"]
+    }
+  ]
+
+  associations = {
+    custom-association = {
+      cluster_name    = var.cluster_name
+      namespace       = kubernetes_namespace_v1.trocks_namespace.metadata[0].name
+      service_account = var.pod_service_account
+    }
+  }
+
+  tags = {
+    Environment = terraform.workspace
+    Terraform   = "true"
+  }
+}
+
+## IAM role to be attached to AWS load balancer controller (not needed if you use pod identity association)
 module "iam" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts"
   version = "~> 6.3.0"
@@ -70,6 +155,32 @@ module "iam" {
     Environment = terraform.workspace
   }
 }
+
+# ## create pod identity association for aws load balancer controller - new way of creating the role for load balancer controller,
+# # and create pod-identity-association between service account and IAM role.  - doesn't work???
+# #https://registry.terraform.io/modules/terraform-aws-modules/eks-pod-identity/aws/2.7.0?utm_content=documentLink&utm_medium=Visual+Studio+Code&utm_source=terraform-ls
+# module "aws_lb_controller_pod_identity" {
+#   source = "terraform-aws-modules/eks-pod-identity/aws"
+
+#   name = "aws-lbc"
+#   version = "2.7.0"
+
+#   # This helper attaches the exact permissions the ALB controller needs
+#   attach_aws_lb_controller_policy = true
+
+#   associations = {
+#     this = {
+#       cluster_name    = var.cluster_name
+#       namespace       = "kube-system"
+#       service_account = "aws-load-balancer-controller"
+#     }
+#   }
+
+#   tags = {
+#     Environment = terraform.workspace
+#     Terraform   = "true"
+#   }
+# }
 
 resource "helm_release" "aws_load_balancer_controller" {
   name       = "aws-load-balancer-controller"
@@ -111,6 +222,7 @@ resource "helm_release" "aws_load_balancer_controller" {
         name   = "aws-load-balancer-controller"
         create = true
         region = "us-east-2"
+        # annotations not needed if we use pod identity association
         annotations = {
           "eks.amazonaws.com/role-arn" = module.iam.arn
         }
@@ -486,6 +598,10 @@ resource "helm_release" "karpenter" {
         effect: NoSchedule
     EOT
   ]
+
+  lifecycle {
+    ignore_changes = [repository_password]
+  }
 }
 
 # resource "helm_release" "karpenter" {

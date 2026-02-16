@@ -3,7 +3,7 @@
 A comprehensive reference implementation demonstrating production-grade Kubernetes deployment on AWS EKS with Spring Boot microservices, automated GitOps workflows, and infrastructure as code.
 
 ## 📖 Documentation
-For a high-level overview, stay here. For technical deep dives, architecture diagrams, and advanced configuration, please see our [Detailed Documentation](./README-detail.md).
+For a high-level overview, stay here. For technical deep dives, architecture diagrams, and advanced configuration, please see our [Detailed Documentation](./deployment/README.md) and [Additional Documentation](./README-detail.md)
 
 ## 🎯 Project Overview
 
@@ -499,6 +499,7 @@ kubectl exec -it <pod_name> -- curl http://service-name/health  # Test service c
 kubectl get events --sort-by='.lastTimestamp'    # View recent events
 kubectl top pods                                 # View pod resource usage
 kubectl top nodes                                # View node resource usage
+kubectl describe hpa gateway-service -n terraform-trocks-namespace  # View HPA details
 ```
 
 ### Cleanup Operations
